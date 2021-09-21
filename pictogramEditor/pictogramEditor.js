@@ -1,5 +1,6 @@
 var fs = require('fs'),
-    http = require('http');
+    http = require('http'),
+    open = require('open');
 
 http.createServer(function (req, res) {
   switch (req.url) {
@@ -21,6 +22,7 @@ http.createServer(function (req, res) {
     }
   }
 }).listen(3000);
+open('http://localhost:3000');
 
 function sendFile(res, url) {
   fs.readFile(url, function (err,data) {

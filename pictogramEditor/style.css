@@ -123,6 +123,7 @@ td span {
 }
 .inputWrapper {
   width: 320px;
+  text-align: left;
 }
 .inputWrapper label {
   font-size: 13px;
@@ -180,7 +181,6 @@ button {
   border: none;
   font-family: "SBBWeb Roman";
   min-width: 100px;
-  float: left;
 }
 button:hover {
   background-color: #cdcdcd;
@@ -238,7 +238,11 @@ div.checkbox[value="1"] .slider {
   left: 264px;
 }
 svg {
-  height: 40px;
+  height: 36px;
+}
+td svg {
+  height: 34px;
+  display: inherit;
 }
 #contentCanvas {
   padding-top: 48px;
@@ -253,8 +257,8 @@ h1 {
 }
 .svgPreview {
   display: inline-block;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   background-color: #eb0000;
 }
 #notificationCanvas {
@@ -286,4 +290,13 @@ p.error{
 }
 .hidden {
   display: none;
+}
+.prototypeWrapper {
+  display: flex;
+  flex-direction: row;
+  column-gap: 20px;
+  row-gap: 20px;
+}
+.marginRight {
+  margin-right: 20px;
 }

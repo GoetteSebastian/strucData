@@ -2,7 +2,7 @@
   "name": "pictogrameditor",
   "version": "1.0.0",
   "description": "The Pictogram Editor provides frontent functionality to modify the pictoLibrary.json Library. ",
-  "main": "index.js",
+  "main": "pictogramEditor.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/sbb-design-systems/picto-library/issues"
   },
-  "homepage": "https://github.com/sbb-design-systems/picto-library#readme"
+  "homepage": "https://github.com/sbb-design-systems/picto-library#readme",
+  "dependencies": {
+    "open": "^8.2.1"
+  }
 }
