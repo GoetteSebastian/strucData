@@ -535,7 +535,6 @@ function createPrototypeEntry(editContainer, proto) {
       keyWrapper.classList.add("hidden");
       nameWrapper.getElementsByTagName("INPUT")[0].disabled = true;
       linkWrapper.classList.remove("hidden");
-      console.log(linkSelect);
       nameWrapper.getElementsByTagName("INPUT")[0].value = lib[linkSelect.value].name;
       relSelect.innerHTML = "";
       lib[linkSelect.value].prototype.forEach((entry) => {
@@ -574,7 +573,7 @@ function createPrototypeEntry(editContainer, proto) {
     linkSelect.appendChild(createElement("OPTION", {"value": list}, lib[list].name));
   });
   if(proto) {
-    linkSelect.value = proto.rel;
+    linkSelect.value = proto.key;
     linkSelect.disabled = true;
   }
 
