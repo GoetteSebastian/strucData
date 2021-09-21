@@ -669,7 +669,6 @@ function exportDesignSystems(header, filename, target, types) { //csv export for
     else if(Number(pictoA.order) > Number(pictoB.order)) return 1;
     else return 0;
   });
-  console.log(lists);
   lists.forEach((item, i) => {
       header.forEach((key, index) => {
         if(key.type == "generated") {
