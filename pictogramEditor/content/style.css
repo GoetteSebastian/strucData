@@ -197,6 +197,10 @@ button.red:hover{
   background-color: #C60018;
   color: #ffffff;
 }
+button[disabled] {
+  opacity: 0.6;
+  cursor: default;
+}
 #header button {
   margin: 3px 24px 3px 24px;
   font-size: 14px;

@@ -1,10 +1,13 @@
 {
-  "name": "pictogrameditor",
+  "name": "Piktogramm Manager",
+  "productName": "Electron tutorial app",
   "version": "1.0.0",
   "description": "The Pictogram Editor provides frontent functionality to modify the pictoLibrary.json Library. ",
   "main": "pictogramEditor.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
   "repository": {
     "type": "git",
@@ -16,7 +19,43 @@
     "url": "https://github.com/sbb-design-systems/picto-library/issues"
   },
   "homepage": "https://github.com/sbb-design-systems/picto-library#readme",
+  "devDependencies": {
+    "@electron-forge/cli": "^6.0.0-beta.61",
+    "@electron-forge/maker-deb": "^6.0.0-beta.61",
+    "@electron-forge/maker-rpm": "^6.0.0-beta.61",
+    "@electron-forge/maker-squirrel": "^6.0.0-beta.61",
+    "@electron-forge/maker-zip": "^6.0.0-beta.61",
+    "electron": "^14.0.1",
+    "electron-packager": "^15.4.0"
+  },
   "dependencies": {
-    "open": "^8.2.1"
+    "electron-squirrel-startup": "^1.0.0"
+  },
+  "config": {
+    "forge": {
+      "packagerConfig": {},
+      "makers": [
+        {
+          "name": "@electron-forge/maker-squirrel",
+          "config": {
+            "name": "pictogrameditor"
+          }
+        },
+        {
+          "name": "@electron-forge/maker-zip",
+          "platforms": [
+            "darwin"
+          ]
+        },
+        {
+          "name": "@electron-forge/maker-deb",
+          "config": {}
+        },
+        {
+          "name": "@electron-forge/maker-rpm",
+          "config": {}
+        }
+      ]
+    }
   }
 }

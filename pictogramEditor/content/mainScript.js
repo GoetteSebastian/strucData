@@ -1,38 +1,40 @@
 var lib = {}; //set global var for the library object.
+var hasUnsavedChanges = false;
 var contentCanvas = document.getElementById("contentCanvas"); //initializing the content canvas where the lists will be rendered
-
+window.api.receive("fromMain", (data) => {
+  switch(data.action) {
+    case "load file":
+      loadJsonFile(data.data);
+      break;
+    case "notification":
+      notification(data.data.text, data.data.type);
+      break;
+    case "get library for saving":
+      window.api.send("toMain", {action: "send library for saving", data: JSON.stringify(lib)});
+  }
+});
 //set the event handlers for all the buttens for import, load or export
-document.getElementById("redrawCanvas").addEventListener("click", () => {loadJsonFile();}, false);
+document.getElementById("redrawCanvas").addEventListener("click", () => {buildViewPort();}, false);
 document.getElementById("createNewList").addEventListener("click", () => {setList();}, false);
-loadJsonFile();
+document.getElementById("loadFile").addEventListener("click", () => {
+  window.api.send("toMain", {action: "open file", data: ""});
+}, false);
+document.getElementById("saveFile").addEventListener("click", () => {
+  saveLibrary();
+});
 
-function loadJsonFile() { //Load the initial json library from the file system
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      lib = JSON.parse(xhttp.responseText);
-      buildViewPort();
-    }
-  };
-  xhttp.open("GET", "pictoLibrary.json", true);
-  xhttp.send();
+function loadJsonFile(data) { //Load the initial json library from the file system
+  lib = JSON.parse(data);
+  buildViewPort();
 }
 
 function saveLibrary() {
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if(this.readyState == 4 && this.status == 200) {
-      var message = JSON.parse(xhttp.responseText);
-      notification(message.text, message.type);
-    }
-  }
-  xhttp.open("POST", "updateLibrary", true);
-  xhttp.send(JSON.stringify(lib));
+  window.api.send("toMain", {action: "save file", data: JSON.stringify(lib)});
+  unsaveChanges(false);
 }
 
 function buildViewPort() { //Sort library and generate the list containers with headers and "add" button in the DOM
   sort();
-
   contentCanvas.innerHTML = "";
   var tables = Object.entries(lib);
   tables.forEach((item) => {
@@ -132,15 +134,14 @@ function setEntry(dataSet, index) { //build the edit, delete, save functions and
 
   var deleteButton = editFooter.appendChild(createElement("BUTTON", {"data-id": dataSet, "data-index": index, "container-id": lib[dataSet].id}, "Löschen"));
   if(index == "new") {
-    deleteButton.disabled = true;
+    deleteButton.classList.add("hidden");
   }
   deleteButton.addEventListener("click", function(e) {
     e.stopPropagation();
     lib[this.getAttribute("data-id")].content.splice(this.getAttribute("data-index"), 1);
-    var container = document.getElementById(this.getAttribute("container-id"));
-    container.getElementsByTagName("TABLE")[0].remove();
-    jsonToTable(container, this.getAttribute("data-id"));
+    unsaveChanges(true);
     document.getElementById("editCanvas").remove();
+    buildViewPort();
   }, false);
   editFooter.appendChild(deleteButton);
 
@@ -153,9 +154,25 @@ function setEntry(dataSet, index) { //build the edit, delete, save functions and
   saveButton.addEventListener("click", function(e) {
     e.stopPropagation();
     var element = {};
-    lib[this.getAttribute("data-id")].prototype.forEach((item, i) => {
+    var currentList = this.getAttribute("data-id");
+    lib[currentList].prototype.forEach((item, i) => {
       var domElement = document.getElementById("dataid" + item.key);
-      if(domElement.type == "checkbox") {
+      if(item.key == "id") {
+        if(index == "new") {
+          var ids = [];
+          lib[currentList].content.forEach((id) => {
+            ids.push(parseInt(id.id));
+          });
+          if(ids.length > 0) {
+            element.id = Math.max(...ids) + 1;
+          }
+          else element.id = 0;
+        }
+        else {
+          element.id = lib[currentList].content[index].id;
+        }
+      }
+      else if(domElement.type == "checkbox") {
         element[item.key] = domElement.checked;
       }
       else if(domElement.type == "select-multiple") {
@@ -174,16 +191,13 @@ function setEntry(dataSet, index) { //build the edit, delete, save functions and
     });
     if(index != "new") {
       lib[this.getAttribute("data-id")].content[this.getAttribute("data-index")] = element;
-      saveLibrary();
     }
     else {
       lib[dataSet].content.push(element);
-      saveLibrary();
     }
-    var container = document.getElementById(this.getAttribute("container-id"));
-    container.getElementsByTagName("TABLE")[0].remove();
-    jsonToTable(container, this.getAttribute("data-id"));
     document.getElementById("editCanvas").remove();
+    buildViewPort();
+    unsaveChanges(true);
   }, false);
   editFooter.appendChild(saveButton);
 
@@ -197,7 +211,8 @@ function setEntry(dataSet, index) { //build the edit, delete, save functions and
     var inputWrapper = document.createElement("DIV");
     inputWrapper.classList.add("inputWrapper");
     var label = document.createElement("LABEL");
-    label.innerHTML = item.name;
+    if(item.type == "link" || item.type == "multiLink") label.innerHTML = lib[item.key].name;
+    else label.innerHTML = item.name;
     label.setAttribute("for", "dataid" + item.key);
     inputWrapper.appendChild(label);
     if(item.type == "text" || item.type == "number") {
@@ -289,7 +304,9 @@ function setEntry(dataSet, index) { //build the edit, delete, save functions and
     input.id = "dataid" + item.key;
     input.classList.add("dataItem");
     inputWrapper.appendChild(input);
-    editContainer.appendChild(inputWrapper);
+    if(item.key !== "id") {
+      editContainer.appendChild(inputWrapper);
+    }
   });
 }
 
@@ -314,9 +331,12 @@ function getLink(element, target) { //get the information of a linked attribute
 
 function createHeader(prototype, bodyRow) { //create table header
   prototype.forEach((item, i) => {
-    var cell = document.createElement("TH");
-    cell.innerHTML = item.name;
-    bodyRow.appendChild(cell);
+    if(item.key != "id"){
+      var cell = document.createElement("TH");
+      if(item.type == "link" || item.type == "multiLink") cell.innerHTML = lib[item.key].name;
+      else cell.innerHTML = item.name;
+      bodyRow.appendChild(cell);
+    }
   });
   return bodyRow;
 }
@@ -324,22 +344,24 @@ function createHeader(prototype, bodyRow) { //create table header
 function createRow(dataSet, index, bodyRow) { //create a body row
   var prototype = lib[dataSet].prototype;
   prototype.forEach((item, i) => {
-    var cell = document.createElement("TD");
-    if(item.type == "text" || item.type == "number" || item.type == "svg") {
-      cell.innerHTML = lib[dataSet].content[index][item.key];
+    if(item.key != "id") {
+      var cell = document.createElement("TD");
+      if(item.type == "text" || item.type == "number" || item.type == "svg") {
+        cell.innerHTML = lib[dataSet].content[index][item.key];
+      }
+      else if(item.type == "link") {
+        cell.appendChild(getLink([item.key, lib[dataSet].content[index][item.key]], item.rel).html);
+      }
+      else if(item.type == "multiLink") {
+        lib[dataSet].content[index][item.key].forEach((linkItem, linkIndex) => {
+          cell.appendChild(getLink([item.key, lib[dataSet].content[index][item.key][linkIndex]], item.rel).html);
+        });
+      }
+      else if(item.type == "boolean") {
+        cell.innerHTML = lib[dataSet].content[index][item.key];
+      }
+      bodyRow.appendChild(cell);
     }
-    else if(item.type == "link") {
-      cell.appendChild(getLink([item.key, lib[dataSet].content[index][item.key]], item.rel).html);
-    }
-    else if(item.type == "multiLink") {
-      lib[dataSet].content[index][item.key].forEach((linkItem, linkIndex) => {
-        cell.appendChild(getLink([item.key, lib[dataSet].content[index][item.key][linkIndex]], item.rel).html);
-      });
-    }
-    else if(item.type == "boolean") {
-      cell.innerHTML = lib[dataSet].content[index][item.key];
-    }
-    bodyRow.appendChild(cell);
   });
   return bodyRow;
 }
@@ -406,40 +428,56 @@ function setList(listKey) {
   var editContainer = editFrame.appendChild(createElement("DIV", {"class": "editContainer"}));
 
   var listIdWrapper = editContainer.appendChild(createElement("DIV", {"class": "inputWrapper listIdWrapper"}));
-  listIdWrapper.appendChild(createElement("LABEL", {"for": "dataidlistId"}, "Tabellen Id"));
-  listIdWrapper.appendChild(createElement("INPUT", {"type": "text", "data-id": "listId", "id": "dataidlistId", "class": "dataItem" + "dataidlistId"}));
+  listIdWrapper.appendChild(createElement("LABEL", {"for": "dataidlistId"}, "Tabellen Schlüssel"));
+  var listId = listIdWrapper.appendChild(createElement("INPUT", {"type": "text", "data-id": "listId", "id": "dataidlistId", "class": "dataItem" + "dataidlistId"}));
   if(listKey) {
-    listIdWrapper.getElementsByTagName("INPUT")[0].value = lib[listKey].id;
-    listIdWrapper.getElementsByTagName("INPUT")[0].disabled = true;
+    listId.value = lib[listKey].id;
+    listId.disabled = true;
   }
-
+  else {
+    listId.addEventListener("input", (e) => {
+      var existingLists = Object.keys(lib);
+      existingLists.push("");
+      if(existingLists.includes(listId.value)) saveButton.disabled = true;
+      else saveButton.disabled = false;
+    });
+  }
   var listNameWrapper = editContainer.appendChild(createElement("DIV", {"class": "inputWrapper listNameWrapper"}));
   listNameWrapper.appendChild(createElement("LABEL", {"for": "dataidlistName"}, "Tabellen Name"));
   listNameWrapper.appendChild(createElement("INPUT", {"type": "text", "data-id": "listName", "id": "dataidlistName", "class": "dataItem" + "dataidlistName"}));
   if(listKey) {
     listNameWrapper.getElementsByTagName("INPUT")[0].value = lib[listKey].name;
-    listNameWrapper.getElementsByTagName("INPUT")[0].disabled = true;
   }
 
   if(listKey) {
     lib[listKey].prototype.forEach((proto) => {
-      createPrototypeEntry(editContainer, proto);
+      if(proto.key != "id") {
+        createPrototypeEntry(editContainer, proto);
+      }
     });
-
   }
 
   var editFooter = editFrame.appendChild(createElement("DIV", {"class": "editFooter"}));
 
   var saveButton = editFooter.appendChild(createElement("BUTTON", {"class": "red"}, "Speichern"));
+  saveButton.disabled = true;
   saveButton.addEventListener("click", function(e) {
     var newList = {
       content: [],
       id: document.getElementById("dataidlistId").value,
       name: document.getElementById("dataidlistName").value,
-      prototype: [],
+      prototype: [
+        {
+          key: "id",
+          name: "Id",
+          rel: "",
+          type: "number"
+        }
+      ],
       sort: []
     };
     var prototypeFields = document.getElementsByClassName("prototypeWrapper");
+
     for (let item of prototypeFields) {
       var proto = {
         key: "",
@@ -449,14 +487,16 @@ function setList(listKey) {
       };
       if(proto.type == "link" || proto.type == "multiLink") {
         proto.key = item.getElementsByClassName("dataidlink")[0].value;
-        proto.name = lib[proto.key].name;
+        //proto.name = lib[proto.key].name;
         proto.rel = item.getElementsByClassName("dataidrel")[0].value;
       }
       else {
         proto.key = item.getElementsByClassName("dataidkey")[0].value;
         proto.name = item.getElementsByClassName("dataidname")[0].value;
       }
-      newList.prototype.push(proto);
+      if(proto.key != "id") {
+        newList.prototype.push(proto);
+      }
     };
     if(listKey) {
       lib[listKey].content.forEach((item) => {
@@ -477,8 +517,8 @@ function setList(listKey) {
     else lib[document.getElementById("dataidlistId").value] = newList;
 
     document.getElementById("editCanvas").remove();
-    saveLibrary();
     buildViewPort();
+    unsaveChanges(true);
     e.stopPropagation();
   }, false);
 
@@ -533,7 +573,7 @@ function createPrototypeEntry(editContainer, proto) {
     if(type.value == "link" || type.value == "multiLink") {
       relWrapper.classList.remove("hidden");
       keyWrapper.classList.add("hidden");
-      nameWrapper.getElementsByTagName("INPUT")[0].disabled = true;
+      nameWrapper.classList.add("hidden");
       linkWrapper.classList.remove("hidden");
       nameWrapper.getElementsByTagName("INPUT")[0].value = lib[linkSelect.value].name;
       relSelect.innerHTML = "";
@@ -545,7 +585,7 @@ function createPrototypeEntry(editContainer, proto) {
     else {
       relWrapper.classList.add("hidden");
       keyWrapper.classList.remove("hidden");
-      nameWrapper.getElementsByTagName("INPUT")[0].disabled = false;
+      nameWrapper.classList.remove("hidden");
       linkWrapper.classList.add("hidden");
     }
   }, false);
@@ -562,7 +602,7 @@ function createPrototypeEntry(editContainer, proto) {
   linkWrapper.appendChild(createElement("LABEL", {"for": "dataidlink"}, "Verknüpfte Liste"));
   var linkSelect = linkWrapper.appendChild(createElement("SELECT", {"id": "dataidlink", "class": "dataItem dataidlink", "data-id": "link"}));
   linkSelect.addEventListener("change", (e) => {
-    nameWrapper.getElementsByTagName("input")[0].value = lib[linkSelect.value].name;
+    //nameWrapper.getElementsByTagName("input")[0].value = lib[linkSelect.value].name;
     relSelect.innerHTML = "";
     lib[linkSelect.value].prototype.forEach((entry) => {
       relSelect.appendChild(createElement("OPTION", {"value": entry.key}, entry.name));
@@ -761,4 +801,13 @@ function exportSVGEditor(header, filename, target) { //csv export containing the
     }
   });
   downloadFile(csvString, filename);
+}
+
+function unsaveChanges(state) {
+  hasUnsavedChanges = state;
+  window.api.send("toMain", {action: "open file changed", data: {state: state}});
+  if(state) {
+    document.getElementById("saveFile").classList.add("highlighted");
+  }
+  else document.getElementById("saveFile").classList.remove("highlighted");
 }
