@@ -1,13 +1,14 @@
 {
-  "name": "Piktogramm Manager",
-  "productName": "Electron tutorial app",
+  "name": "List and Link",
+  "productName": "List and Link",
   "version": "1.0.0",
-  "description": "The Pictogram Editor provides frontent functionality to modify the pictoLibrary.json Library. ",
+  "description": "The Pictogram Editor provides frontend functionality to modify the pictoLibrary.json Library. ",
   "main": "pictogramEditor.js",
   "scripts": {
-    "start": "electron-forge start",
-    "package": "electron-forge package",
-    "make": "electron-forge make"
+    "start": "electron .",
+    "package-mac": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=assets/icons/mac/icon.icns --prune=true --out=builds",
+    "package-win": "electron-packager . --overwrite --asar --platform=win32 --arch=ia32 --prune=true --out=builds",
+    "package-linux": "electron-packager . --overwrite --asar --platform=linux --arch=x64 --icon=assets/icons/png/1024x1024.png --prune=true --out=builds"
   },
   "repository": {
     "type": "git",
@@ -20,11 +21,6 @@
   },
   "homepage": "https://github.com/sbb-design-systems/picto-library#readme",
   "devDependencies": {
-    "@electron-forge/cli": "^6.0.0-beta.61",
-    "@electron-forge/maker-deb": "^6.0.0-beta.61",
-    "@electron-forge/maker-rpm": "^6.0.0-beta.61",
-    "@electron-forge/maker-squirrel": "^6.0.0-beta.61",
-    "@electron-forge/maker-zip": "^6.0.0-beta.61",
     "electron": "^14.0.1",
     "electron-packager": "^15.4.0"
   },
@@ -32,30 +28,5 @@
     "electron-squirrel-startup": "^1.0.0"
   },
   "config": {
-    "forge": {
-      "packagerConfig": {},
-      "makers": [
-        {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "name": "pictogrameditor"
-          }
-        },
-        {
-          "name": "@electron-forge/maker-zip",
-          "platforms": [
-            "darwin"
-          ]
-        },
-        {
-          "name": "@electron-forge/maker-deb",
-          "config": {}
-        },
-        {
-          "name": "@electron-forge/maker-rpm",
-          "config": {}
-        }
-      ]
-    }
   }
 }

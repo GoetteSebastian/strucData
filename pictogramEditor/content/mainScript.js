@@ -1,5 +1,5 @@
 var lib = {}; //set global var for the library object.
-var hasUnsavedChanges = false;
+var docTitle = "List and Link";
 var contentCanvas = document.getElementById("contentCanvas"); //initializing the content canvas where the lists will be rendered
 window.api.receive("fromMain", (data) => {
   switch(data.action) {
@@ -10,27 +10,29 @@ window.api.receive("fromMain", (data) => {
       notification(data.data.text, data.data.type);
       break;
     case "get library for saving":
-      window.api.send("toMain", {action: "send library for saving", data: JSON.stringify(lib)});
+      saveLibrary(data.data.close, data.data.quit);
+      break;
   }
 });
 //set the event handlers for all the buttens for import, load or export
 document.getElementById("redrawCanvas").addEventListener("click", () => {buildViewPort();}, false);
 document.getElementById("createNewList").addEventListener("click", () => {setList();}, false);
-document.getElementById("loadFile").addEventListener("click", () => {
-  window.api.send("toMain", {action: "open file", data: ""});
-}, false);
-document.getElementById("saveFile").addEventListener("click", () => {
-  saveLibrary();
-});
 
 function loadJsonFile(data) { //Load the initial json library from the file system
-  lib = JSON.parse(data);
+  lib = JSON.parse(data.json);
+  document.title = docTitle + " – " + data.file;
   buildViewPort();
 }
 
-function saveLibrary() {
-  window.api.send("toMain", {action: "save file", data: JSON.stringify(lib)});
-  unsaveChanges(false);
+function saveLibrary(close, quit) {
+  window.api.send("toMain", {
+    action: "send library for saving",
+    data: {
+      json: JSON.stringify(lib),
+      close: close,
+      quit: quit
+    }
+  });
 }
 
 function buildViewPort() { //Sort library and generate the list containers with headers and "add" button in the DOM
@@ -804,10 +806,5 @@ function exportSVGEditor(header, filename, target) { //csv export containing the
 }
 
 function unsaveChanges(state) {
-  hasUnsavedChanges = state;
   window.api.send("toMain", {action: "open file changed", data: {state: state}});
-  if(state) {
-    document.getElementById("saveFile").classList.add("highlighted");
-  }
-  else document.getElementById("saveFile").classList.remove("highlighted");
 }
