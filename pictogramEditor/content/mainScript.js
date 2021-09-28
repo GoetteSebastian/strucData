@@ -1,6 +1,7 @@
 var lib = {}; //set global var for the library object.
 var docTitle = "List and Link";
 var contentCanvas = document.getElementById("contentCanvas"); //initializing the content canvas where the lists will be rendered
+
 window.api.receive("fromMain", (data) => {
   switch(data.action) {
     case "load file":
@@ -374,13 +375,14 @@ function sort() { //sort the library. The sorting attributes are stored in each 
       var result = 0;
       lib[item].sort.forEach((i) => {
         if(result == 0) {
-          result = a[i] - b[i];
+          if(a[i] > b[i]) result = 1
+          if(a[i] < b[i]) result = -1
         }
       });
       return result;
     });
   });
-
+  console.log("sorted");
 }
 
 function createExportHeader(header, separator) { //creating header line for csv exports
@@ -446,9 +448,14 @@ function setList(listKey) {
   }
   var listNameWrapper = editContainer.appendChild(createElement("DIV", {"class": "inputWrapper listNameWrapper"}));
   listNameWrapper.appendChild(createElement("LABEL", {"for": "dataidlistName"}, "Tabellen Name"));
-  listNameWrapper.appendChild(createElement("INPUT", {"type": "text", "data-id": "listName", "id": "dataidlistName", "class": "dataItem" + "dataidlistName"}));
+  listNameWrapper.appendChild(createElement("INPUT", {"type": "text", "data-id": "listName", "id": "dataidlistName", "class": "dataItem dataidlistName"}));
   if(listKey) {
     listNameWrapper.getElementsByTagName("INPUT")[0].value = lib[listKey].name;
+  }
+
+  var listSort = renderInput(editContainer, "listSort", "text", "Sortierreihenfolge [Feld Schlüssel Komma getrennt]")
+  if(listKey) {
+    listSort.input.value = lib[listKey].sort.join()
   }
 
   if(listKey) {
@@ -462,7 +469,7 @@ function setList(listKey) {
   var editFooter = editFrame.appendChild(createElement("DIV", {"class": "editFooter"}));
 
   var saveButton = editFooter.appendChild(createElement("BUTTON", {"class": "red"}, "Speichern"));
-  saveButton.disabled = true;
+  if(!listKey) saveButton.disabled = true;
   saveButton.addEventListener("click", function(e) {
     var newList = {
       content: [],
@@ -477,8 +484,11 @@ function setList(listKey) {
         }
       ],
       sort: []
-    };
-    var prototypeFields = document.getElementsByClassName("prototypeWrapper");
+    }
+
+
+
+    var prototypeFields = document.getElementsByClassName("prototypeWrapper")
 
     for (let item of prototypeFields) {
       var proto = {
@@ -500,6 +510,13 @@ function setList(listKey) {
         newList.prototype.push(proto);
       }
     };
+
+    var sortArray = []
+    listSort.input.value.replace(" ", "").split(",").forEach((item, i) => {
+      if(newList.prototype.findIndex(o => o.key === item) !== -1) sortArray.push(item)
+    })
+    newList.sort = sortArray.length >0 ? sortArray : ['id']
+    
     if(listKey) {
       lib[listKey].content.forEach((item) => {
         var newItem = {};
@@ -516,7 +533,7 @@ function setList(listKey) {
       });
       lib[listKey] = newList;
     }
-    else lib[document.getElementById("dataidlistId").value] = newList;
+    else lib[document.getElementById("dataidlistId").value] = newList
 
     document.getElementById("editCanvas").remove();
     buildViewPort();
@@ -649,6 +666,14 @@ function createElement(type, attributes, innerHTML) {
   }
   if(innerHTML) element.innerHTML = innerHTML;
   return element;
+}
+
+function renderInput(parent, id, type, label) {
+  var element = {}
+  element.wrapper = parent.appendChild(createElement("DIV", {"class": "inputWrapper " + id + "Wrapper"}))
+  element.label = element.wrapper.appendChild(createElement("LABEL",{"for": "dataid" + id}, label))
+  element.input = element.wrapper.appendChild(createElement("INPUT", {"type": "text", "data-id": id, "id": "dataid" + id, "class": "dataItem dataid" + id}))
+  return element
 }
 
 function notification(text, type) {
