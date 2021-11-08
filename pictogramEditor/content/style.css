@@ -304,3 +304,14 @@ p.error{
 .marginRight {
   margin-right: 20px;
 }
+icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+icon.true {
+  background-image: url("assets/tick-small.svg");
+}
+icon.false {
+  background-image: url("assets/cross-small.svg");
+}

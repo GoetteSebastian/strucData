@@ -1,9 +1,9 @@
-const {app, BrowserWindow, dialog, ipcMain, Menu } = require('electron');
-const path = require('path');
-const fs = require('fs');
-let mainWindow;
-var openFile;
-var unsavedFile = false;
+const {app, BrowserWindow, dialog, ipcMain, Menu } = require('electron')
+const path = require('path')
+const fs = require('fs')
+let mainWindow
+var openFile
+var unsavedFile = false
 
 app.whenReady().then(() => {
   mainWindow = new BrowserWindow({
@@ -15,40 +15,40 @@ app.whenReady().then(() => {
       contextIsolation: true,
       enableRemoteModule: false
     }
-  });
+  })
 
-  mainWindow.loadFile('content/index.html');
+  mainWindow.loadFile('content/index.html')
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
 
   app.on("before-quit", (e) => {
     if(unsavedFile) {
-      e.preventDefault();
-      closeOnUnsavedData(true);
+      e.preventDefault()
+      closeOnUnsavedData(true)
     }
-  });
+  })
 
   ipcMain.on('toMain', (event, args) => {
     if(args.action == "open file changed") {
-      unsavedFile = args.data.state;
+      unsavedFile = args.data.state
     }
     else if(args.action == "send library for saving") {
-      saveFile(args.data.json, args.data.close, args.data.quit);
+      saveFile(args.data.json, args.data.close, args.data.quit)
     }
-  });
+  })
 
   mainWindow.on("close", (e) => {
     if(unsavedFile) {
-      e.preventDefault();
-      closeOnUnsavedData(false);
+      e.preventDefault()
+      closeOnUnsavedData(false)
     }
-  });
-});
+  })
+})
 
 app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') app.quit();
-});
+  if (process.platform !== 'darwin') app.quit()
+})
 
 const isMac = process.platform === 'darwin'
 
@@ -100,25 +100,26 @@ function saveFile(data, closeWindow, quitApp) {
         console.log("Saveing abored");
         return;
       }
-      writeFile(result.filePath, data, closeWindow, quitApp);
+      writeFile(result.filePath, data, closeWindow, quitApp)
     }).catch(err => {
-      console.log(err);
-    });
+      console.log(err)
+    })
   }
 }
 
 function writeFile(filePath, data, closeWindow, quitApp) {
   fs.writeFile(filePath, data, "utf8", function(err) {
     if(err) {
-      mainWindow.webContents.send("fromMain", {action: "notification", data: {text: "Datei konnte nicht gespeichert werden: " + err, type: "error"}});
-      return;
+      mainWindow.webContents.send("fromMain", {action: "notification", data: {text: "Datei konnte nicht gespeichert werden: " + err, type: "error"}})
+      return
     }
-    mainWindow.webContents.send("fromMain", {action: "notification", data: {text: "Datei wurde erfolgreich gespeichert. ", type: "success"}});
-    openFile = filePath;
-    unsavedFile = false;
-    if(quitApp) app.quit();
-    if(closeWindow) mainWindow.close();
-  });
+    mainWindow.webContents.send("fromMain", {action: "notification", data: {text: "Datei wurde erfolgreich gespeichert. ", type: "success"}})
+    mainWindow.webContents.send("fromMain", {action: "set title", data: {fileName: filePath}})
+    openFile = filePath
+    unsavedFile = false
+    if(quitApp) app.quit()
+    if(closeWindow) mainWindow.close()
+  })
 }
 
 function getFile() {
@@ -131,18 +132,18 @@ function getFile() {
     ]
   }).then(result => {
     if(result.canceled) {
-      console.log("No file selected");
-      return;
+      console.log("No file selected")
+      return
     }
     fs.readFile(result.filePaths[0], 'utf-8', (err, data) => {
       if(err) {
-        alert("An error ocurred reading the file :" + err.message);
-        return;
+        alert("An error ocurred reading the file :" + err.message)
+        return
       }
-      mainWindow.webContents.send("fromMain", {action: "load file", data: {json: data, file: result.filePaths[0]}});
-      openFile = result.filePaths[0];
-    });
-  });
+      mainWindow.webContents.send("fromMain", {action: "load file", data: {json: data, file: result.filePaths[0]}})
+      openFile = result.filePaths[0]
+    })
+  })
 }
 
 function closeOnUnsavedData(quit) {
@@ -159,18 +160,18 @@ function closeOnUnsavedData(quit) {
   }).then(answer => {
     switch(answer.response) {
       case 0:
-        mainWindow.webContents.send("fromMain", {action: "get library for saving", data: {close: true, quit: quit}});
-        break;
+        mainWindow.webContents.send("fromMain", {action: "get library for saving", data: {close: true, quit: quit}})
+        break
       case 1:
-        unsavedFile = false;
-        if(quit) app.quit();
-        mainWindow.close();
-        break;
+        unsavedFile = false
+        if(quit) app.quit()
+        mainWindow.close()
+        break
       case 2:
         //do nothing
-        break;
+        break
       default:
         //do nothing
     }
-  });
+  })
 }

@@ -1,23 +1,64 @@
-var lib = {}; //set global var for the library object.
-var docTitle = "List and Link";
-var contentCanvas = document.getElementById("contentCanvas"); //initializing the content canvas where the lists will be rendered
+var lib = {} //set global var for the library object.
+var docTitle = "List and Link"
+var contentCanvas = document.getElementById("contentCanvas") //initializing the content canvas where the lists will be rendered
+var EntryTypes = {
+  text: {
+    value: "text",
+    name: "Text",
+    defaultValue: ""
+  },
+  longText: {
+    value: "longText",
+    name: "Langer Text",
+    defaultValue: ""
+  },
+  number: {
+    value: "number",
+    name: "Nummer",
+    defaultValue: 0
+  },
+  link: {
+    value: "link",
+    name: "Verknüpfung",
+    defaultValue: 0
+  },
+  boolean: {
+    value: "boolean",
+    name: "Checkbox",
+    defaultValue: false
+  },
+  multiLink: {
+    value: "multiLink",
+    name: "Verknüpfung Multi Select",
+    defaultValue: []
+  },
+  svg: {
+    value: "svg",
+    name: "SVG Grafik",
+    defaultValue: ""
+  }
+};
+
 
 window.api.receive("fromMain", (data) => {
   switch(data.action) {
     case "load file":
-      loadJsonFile(data.data);
-      break;
+      loadJsonFile(data.data)
+      break
     case "notification":
-      notification(data.data.text, data.data.type);
-      break;
+      notification(data.data.text, data.data.type)
+      break
     case "get library for saving":
-      saveLibrary(data.data.close, data.data.quit);
-      break;
+      saveLibrary(data.data.close, data.data.quit)
+      break
+    case "set title":
+      document.title = docTitle + " – " + data.data.fileName
+      break
   }
-});
+})
 //set the event handlers for all the buttens for import, load or export
-document.getElementById("redrawCanvas").addEventListener("click", () => {buildViewPort();}, false);
-document.getElementById("createNewList").addEventListener("click", () => {setList();}, false);
+document.getElementById("redrawCanvas").addEventListener("click", () => {buildViewPort()}, false)
+document.getElementById("createNewList").addEventListener("click", () => {setList()}, false)
 
 function loadJsonFile(data) { //Load the initial json library from the file system
   lib = JSON.parse(data.json);
@@ -37,21 +78,21 @@ function saveLibrary(close, quit) {
 }
 
 function buildViewPort() { //Sort library and generate the list containers with headers and "add" button in the DOM
-  sort();
-  contentCanvas.innerHTML = "";
-  var tables = Object.entries(lib);
+  sort()
+  contentCanvas.innerHTML = ""
+  var tables = Object.entries(lib)
   tables.forEach((item) => {
-    var container = contentCanvas.appendChild(createElement("DIV", {"id": item[1].id, "data-id": item[0]}));
-    var title = container.appendChild(createElement("H1", item[1].name));
-    var editButton = title.appendChild(createElement("BUTTON", {"data-id": item[0], "class": "right"}, "Tabelle bearbeiten"));
+    var container = contentCanvas.appendChild(createElement("DIV", {"data-id": item[0]}))
+    var title = container.appendChild(createElement("H1", item[1].name))
+    var editButton = title.appendChild(createElement("BUTTON", {"class": "right"}, "Tabelle bearbeiten"))
     editButton.addEventListener("click", () => {
-      setList(editButton.getAttribute("data-id"));
-    }, false);
-    var addButton = title.appendChild(createElement("BUTTON", {"class": "right red marginRight", "dom-id": item[1].id, "data-id": item[0]}, "Element hinzufügen"));
+      setList(item[0])
+    }, false)
+    var addButton = title.appendChild(createElement("BUTTON", {"class": "right red marginRight"}, "Element hinzufügen"))
     addButton.onclick = function() {
-      setEntry(this.getAttribute("data-id"), "new")
-    };
-    jsonToTable(container, item[0]);
+      setEntry(item[0], "new")
+    }
+    jsonToTable(container, item[0])
   });
 }
 
@@ -67,52 +108,6 @@ function jsonToTable(container, dataSet) { //create a html table from a json lis
     table.appendChild(createRow(dataSet, i, bodyRow));
   });
   container.appendChild(table);
-}
-
-function loadSVG(input, dataKey) { //load choosen svg files, read them and write them in the library. If an old graphic already exist, it overwrites this one.
-  var svgFiles = Array.from(input.target.files);
-  var parser = new DOMParser();
-  svgFiles.forEach(file => {
-    const reader = new FileReader;
-    reader.originalFileName = file.name.replace(".svg", "");
-    reader.addEventListener('load', (event) => {
-      var data = parser.parseFromString(event.target.result, "image/svg+xml");
-      if(data.getElementById("content_1_") != null) {
-        data.getElementById("content_1_").id = "content";
-      }
-      if(data.getElementById("Content") != null) {
-        data.getElementById("Content").id = "content";
-      }
-      var pictoId = parseInt(reader.originalFileName.substring(0, 2));
-      var location = {dir: "svgPictos", rel: "pictos"};
-      if(pictoId == 21 || reader.originalFileName.indexOf("Gleis") == 0) location = {dir: "svgTrack", rel: "track"};
-      else if(pictoId == 22 || reader.originalFileName.indexOf("Sektor") == 0) location = {dir: "svgSector", rel: "sector"};
-      else if(pictoId == 23 || reader.originalFileName.indexOf("Kante") == 0) location = {dir: "svgStand", rel: "stand"};
-      var isNew = true;
-      lib[location.dir].content.forEach((item, i) => {
-        if(item.file_name == reader.originalFileName || item.file_name.substring(item.file_name.indexOf("_") + 1) == reader.originalFileName) {
-          item[dataKey] = data.documentElement.outerHTML;
-          isNew = false;
-        }
-      });
-      if(isNew) {
-        lib[location.dir].content.push({
-          file_name: reader.originalFileName,
-          [dataKey]: data.documentElement.outerHTML,
-          [location.rel]: parseInt(reader.originalFileName.substring(0, reader.originalFileName.indexOf("_"))),
-          isLeft: (reader.originalFileName.includes("_r")) ? 0 : 1,
-          isRight: (reader.originalFileName.includes("_l")) ? 0 : 1,
-          isDe: (reader.originalFileName.includes("_fr") || reader.originalFileName.includes("_it") || reader.originalFileName.includes("_en")) ? 0 : 1,
-          isFr: (reader.originalFileName.includes("_de") || reader.originalFileName.includes("_it") || reader.originalFileName.includes("_en")) ? 0 : 1,
-          isIt: (reader.originalFileName.includes("_de") || reader.originalFileName.includes("_fr") || reader.originalFileName.includes("_en")) ? 0 : 1,
-          isEn: (reader.originalFileName.includes("_de") || reader.originalFileName.includes("_fr") || reader.originalFileName.includes("_it")) ? 0 : 1
-        });
-      }
-    });
-    if(file.name.indexOf(".svg") != -1) {
-      reader.readAsText(file);
-    }
-  });
 }
 
 function setEntry(dataSet, index) { //build the edit, delete, save functions and edit overlays on doubleclick.
@@ -361,7 +356,9 @@ function createRow(dataSet, index, bodyRow) { //create a body row
         });
       }
       else if(item.type == "boolean") {
-        cell.innerHTML = lib[dataSet].content[index][item.key];
+        var icon = document.createElement("ICON")
+        icon.classList.add(lib[dataSet].content[index][item.key])
+        cell.appendChild(icon)
       }
       bodyRow.appendChild(cell);
     }
@@ -382,7 +379,6 @@ function sort() { //sort the library. The sorting attributes are stored in each 
       return result;
     });
   });
-  console.log("sorted");
 }
 
 function createExportHeader(header, separator) { //creating header line for csv exports
@@ -425,51 +421,38 @@ function find(list, attribute, value) { //search in the library in a given list 
 }
 
 function setList(listKey) {
-  var editCanvas = document.body.appendChild(createElement("DIV", {"id": "editCanvas"}));
+  var prototypeEntries = []
+  var editCanvas = document.body.appendChild(createElement("DIV", {"id": "editCanvas"}))
 
-  var editFrame = editCanvas.appendChild(createElement("DIV", {"class": "editFrame"}));
+  var editFrame = editCanvas.appendChild(createElement("DIV", {"class": "editFrame"}))
 
-  var editContainer = editFrame.appendChild(createElement("DIV", {"class": "editContainer"}));
+  var editContainer = editFrame.appendChild(createElement("DIV", {"class": "editContainer"}))
 
-  var listIdWrapper = editContainer.appendChild(createElement("DIV", {"class": "inputWrapper listIdWrapper"}));
-  listIdWrapper.appendChild(createElement("LABEL", {"for": "dataidlistId"}, "Tabellen Schlüssel"));
-  var listId = listIdWrapper.appendChild(createElement("INPUT", {"type": "text", "data-id": "listId", "id": "dataidlistId", "class": "dataItem" + "dataidlistId"}));
-  if(listKey) {
-    listId.value = lib[listKey].id;
-    listId.disabled = true;
-  }
-  else {
-    listId.addEventListener("input", (e) => {
-      var existingLists = Object.keys(lib);
-      existingLists.push("");
-      if(existingLists.includes(listId.value)) saveButton.disabled = true;
-      else saveButton.disabled = false;
-    });
-  }
-  var listNameWrapper = editContainer.appendChild(createElement("DIV", {"class": "inputWrapper listNameWrapper"}));
-  listNameWrapper.appendChild(createElement("LABEL", {"for": "dataidlistName"}, "Tabellen Name"));
-  listNameWrapper.appendChild(createElement("INPUT", {"type": "text", "data-id": "listName", "id": "dataidlistName", "class": "dataItem dataidlistName"}));
-  if(listKey) {
-    listNameWrapper.getElementsByTagName("INPUT")[0].value = lib[listKey].name;
-  }
+  var listIdWrapper = renderInput(editContainer, "listId", "text", "Tabellen Schlüssel", listKey ? lib[listKey].id : undefined)
+  listIdWrapper.input.disabled = listKey ? true : false
+  listIdWrapper.input.addEventListener("input", (e) => {
+    var existingLists = Object.keys(lib)
+    existingLists.push("")
+    if(existingLists.includes(listId.value)) saveButton.disabled = true
+    else saveButton.disabled = false
+  })
 
-  var listSort = renderInput(editContainer, "listSort", "text", "Sortierreihenfolge [Feld Schlüssel Komma getrennt]")
-  if(listKey) {
-    listSort.input.value = lib[listKey].sort.join()
-  }
+  var listNameWrapper = renderInput(editContainer, "listName", "text", "Tabellen Name", listKey ? lib[listKey].name : undefined)
+
+  var listSort = renderInput(editContainer, "listSort", "text", "Sortierreihenfolge [Feld Schlüssel Komma getrennt]", listKey ? lib[listKey].sort.join() : undefined)
 
   if(listKey) {
     lib[listKey].prototype.forEach((proto) => {
       if(proto.key != "id") {
-        createPrototypeEntry(editContainer, proto);
+        prototypeEntries.push(createPrototypeEntry(editContainer, proto))
       }
     });
   }
 
-  var editFooter = editFrame.appendChild(createElement("DIV", {"class": "editFooter"}));
+  var editFooter = editFrame.appendChild(createElement("DIV", {"class": "editFooter"}))
 
-  var saveButton = editFooter.appendChild(createElement("BUTTON", {"class": "red"}, "Speichern"));
-  if(!listKey) saveButton.disabled = true;
+  var saveButton = editFooter.appendChild(createElement("BUTTON", {"class": "red"}, "Speichern"))
+  if(!listKey) saveButton.disabled = true
   saveButton.addEventListener("click", function(e) {
     var newList = {
       content: [],
@@ -486,8 +469,6 @@ function setList(listKey) {
       sort: []
     }
 
-
-
     var prototypeFields = document.getElementsByClassName("prototypeWrapper")
 
     for (let item of prototypeFields) {
@@ -499,7 +480,6 @@ function setList(listKey) {
       };
       if(proto.type == "link" || proto.type == "multiLink") {
         proto.key = item.getElementsByClassName("dataidlink")[0].value;
-        //proto.name = lib[proto.key].name;
         proto.rel = item.getElementsByClassName("dataidrel")[0].value;
       }
       else {
@@ -515,23 +495,22 @@ function setList(listKey) {
     listSort.input.value.replace(" ", "").split(",").forEach((item, i) => {
       if(newList.prototype.findIndex(o => o.key === item) !== -1) sortArray.push(item)
     })
-    newList.sort = sortArray.length >0 ? sortArray : ['id']
-    
+    newList.sort = sortArray.length > 0 ? sortArray : ['id']
+
     if(listKey) {
       lib[listKey].content.forEach((item) => {
         var newItem = {};
         newList.prototype.forEach((p) => {
-          if(item[p.key]) {
-            newItem[p.key] = item[p.key];
+          if(item[p.key] !== undefined) {
+            newItem[p.key] = item[p.key]
           }
           else {
-            if(p.type == "checkbox") newItem[p.key] = false;
-            else newItem[p.key] = "";
+            newItem[p.key] = EntryTypes[p.type].defaultValue
           }
         });
-        newList.content.push(newItem);
+        newList.content.push(newItem)
       });
-      lib[listKey] = newList;
+      lib[listKey] = newList
     }
     else lib[document.getElementById("dataidlistId").value] = newList
 
@@ -554,103 +533,64 @@ function setList(listKey) {
 }
 
 function createPrototypeEntry(editContainer, proto) {
-  var prototypeWrapper = editContainer.appendChild(createElement("DIV", {"class": "prototypeWrapper"}));
-  var typeWrapper = prototypeWrapper.appendChild(createElement("DIV", {"class": "inputWrapper"}));
-  typeWrapper.appendChild(createElement("LABEL", {"for": "dataidtype"}, "Feld Typ"));
-  var type = typeWrapper.appendChild(createElement("SELECT", {"id": "dataidtype", "class": "dataItem dataidtype", "data-id": "type"}));
-  var types = [
-    {
-      value: "text",
-      name: "Text"
-    },
-    {
-      value: "number",
-      name: "Nummer"
-    },
-    {
-      value: "link",
-      name: "Verknüpfung"
-    },
-    {
-      value: "boolean",
-      name: "Checkbox"
-    },
-    {
-      value: "multiLink",
-      name: "Verknüpfung Multi Select"
-    },
-    {
-      value: "svg",
-      name: "SVG Grafik"
-    }
-  ];
+  var element = {}
+  var prototypeWrapper = editContainer.appendChild(createElement("DIV", {"class": "prototypeWrapper"}))
 
-  types.forEach((item) => {
-    type.appendChild(createElement("OPTION", {"value": item.value}, item.name));
+  element.type = renderInput(prototypeWrapper, "type", "select", "Feld Typ")
+  Object.entries(EntryTypes).forEach((item) => {
+    element.type.input.appendChild(createElement("OPTION", {"value": item[0]}, item[1].name))
+  })
+
+  element.key = renderInput(prototypeWrapper, "key", "text", "Feld Schlüssel", proto ? proto.key : undefined)
+  element.key.input.disabled = proto ? true: false
+
+  element.link = renderInput(prototypeWrapper, "link", "select", "Verknüpfte Liste")
+  Object.keys(lib).forEach((list) => {
+    element.link.input.appendChild(createElement("OPTION", {"value": list}, lib[list].name))
   });
-  type.addEventListener("input", (e) => {
-    if(type.value == "link" || type.value == "multiLink") {
-      relWrapper.classList.remove("hidden");
-      keyWrapper.classList.add("hidden");
-      nameWrapper.classList.add("hidden");
-      linkWrapper.classList.remove("hidden");
-      nameWrapper.getElementsByTagName("INPUT")[0].value = lib[linkSelect.value].name;
-      relSelect.innerHTML = "";
-      lib[linkSelect.value].prototype.forEach((entry) => {
-        relSelect.appendChild(createElement("OPTION", {"value": entry.key}, entry.name));
-      });
-      if(proto) relSelect.value = proto.rel;
+
+  element.name = renderInput(prototypeWrapper, "name", "text", "Anzeigename", proto ? proto.name : undefined)
+
+  element.rel = renderInput(prototypeWrapper, "rel", "select", "Anzeigewert")
+
+  element.type.input.addEventListener("input", (e) => {
+    if(element.type.input.value == "link" || element.type.input.value == "multiLink") {
+      element.rel.wrapper.classList.remove("hidden")
+      element.key.wrapper.classList.add("hidden")
+      element.name.wrapper.classList.add("hidden")
+      element.link.wrapper.classList.remove("hidden")
+      element.name.input.value = lib[element.link.input.value].name
+      element.rel.input.innerHTML = ""
+      lib[element.link.input.value].prototype.forEach((entry) => {
+        element.rel.input.appendChild(createElement("OPTION", {"value": entry.key}, entry.name))
+      })
+      if(proto) element.rel.input.value = proto.rel
     }
     else {
-      relWrapper.classList.add("hidden");
-      keyWrapper.classList.remove("hidden");
-      nameWrapper.classList.remove("hidden");
-      linkWrapper.classList.add("hidden");
+      element.rel.wrapper.classList.add("hidden")
+      element.key.wrapper.classList.remove("hidden")
+      element.name.wrapper.classList.remove("hidden")
+      element.link.wrapper.classList.add("hidden")
     }
-  }, false);
+  }, false)
 
-  var keyWrapper = prototypeWrapper.appendChild(createElement("DIV", {"class": "inputWrapper keyWrapper"}));
-  keyWrapper.appendChild(createElement("LABEL", {"for": "dataidkey"}, "Feld Schlüssel"));
-  var keyInput = keyWrapper.appendChild(createElement("INPUT", {"type": "text", "data-id": "key", "id": "dataidkey", "class": "dataItem dataidkey"}));
+  element.link.input.addEventListener("change", (e) => {
+    element.rel.input.innerHTML = ""
+    lib[element.link.input.value].prototype.forEach((entry) => {
+      element.rel.input.appendChild(createElement("OPTION", {"value": entry.key}, entry.name))
+    })
+  })
+
   if(proto) {
-    keyInput.value = proto.key;
-    keyInput.disabled = true;
+    element.link.input.value = proto.key;
+    element.link.input.disabled = true;
+    element.type.input.value = proto.type
+    element.type.input.dispatchEvent(new Event('input', { bubbles: true }))
+    element.type.input.disabled = true
   }
-
-  var linkWrapper = prototypeWrapper.appendChild(createElement("DIV", {"class": "inputWrapper hidden"}));
-  linkWrapper.appendChild(createElement("LABEL", {"for": "dataidlink"}, "Verknüpfte Liste"));
-  var linkSelect = linkWrapper.appendChild(createElement("SELECT", {"id": "dataidlink", "class": "dataItem dataidlink", "data-id": "link"}));
-  linkSelect.addEventListener("change", (e) => {
-    //nameWrapper.getElementsByTagName("input")[0].value = lib[linkSelect.value].name;
-    relSelect.innerHTML = "";
-    lib[linkSelect.value].prototype.forEach((entry) => {
-      relSelect.appendChild(createElement("OPTION", {"value": entry.key}, entry.name));
-    });
-  });
-
-  Object.keys(lib).forEach((list) => {
-    linkSelect.appendChild(createElement("OPTION", {"value": list}, lib[list].name));
-  });
-  if(proto) {
-    linkSelect.value = proto.key;
-    linkSelect.disabled = true;
-  }
-
-  var nameWrapper = prototypeWrapper.appendChild(createElement("DIV", {"class": "inputWrapper nameWrapper"}));
-  nameWrapper.appendChild(createElement("LABEL", {"for": "dataidname"}, "Anzeigename"));
-  var nameInput = nameWrapper.appendChild(createElement("INPUT", {"type": "text", "data-id": "name", "id": "dataidname", "class": "dataItem dataidname"}));
-  if(proto) {
-    nameInput.value = proto.name;
-  }
-
-  var relWrapper = prototypeWrapper.appendChild(createElement("DIV", {"class": "inputWrapper hidden"}));
-  relWrapper.appendChild(createElement("LABEL", {"for": "dataodrel"}, "Anzeigewert"));
-  var relSelect = relWrapper.appendChild(createElement("SELECT", {"id": "dataidrel", "class": "dataItem dataidrel", "data-id": "rel"}));
-
-  if(proto) {
-    type.value = proto.type;
-    type.dispatchEvent(new Event('input', { bubbles: true }));
-    type.disabled = true;
+  else {
+    element.link.wrapper.classList.add("hidden")
+    element.rel.wrapper.classList.add("hidden")
   }
 }
 
@@ -668,11 +608,17 @@ function createElement(type, attributes, innerHTML) {
   return element;
 }
 
-function renderInput(parent, id, type, label) {
+function renderInput(parent, id, type, label, value) {
   var element = {}
   element.wrapper = parent.appendChild(createElement("DIV", {"class": "inputWrapper " + id + "Wrapper"}))
   element.label = element.wrapper.appendChild(createElement("LABEL",{"for": "dataid" + id}, label))
-  element.input = element.wrapper.appendChild(createElement("INPUT", {"type": "text", "data-id": id, "id": "dataid" + id, "class": "dataItem dataid" + id}))
+  if(type == "select") {
+    element.input = element.wrapper.appendChild(createElement("SELECT", {"data-id": id, "id": "dataid" + id, "class": "dataItem dataid" + id}))
+  }
+  else {
+    element.input = element.wrapper.appendChild(createElement("INPUT", {"type": type, "data-id": id, "id": "dataid" + id, "class": "dataItem dataid" + id}))
+    if(value) element.input.value = value
+  }
   return element
 }
 
@@ -697,137 +643,6 @@ function notification(text, type) {
   setTimeout(function() {
     notifier.remove();
   }, 5000);
-}
-
-function cleanBoolean (list) {
-  lib[list].prototype.forEach((item, index) => {
-    if(item.type == "boolean") {
-      lib[list].content.forEach(i => {
-        i[item.key] = i[item.key] == 1 ? true : false;
-      });
-    }
-    else if(item.type == "number" || item.type == "link") {
-      lib[list].content.forEach(i => {
-        i[item.key] = parseInt(i[item.key]);
-      });
-    }
-  });
-}
-
-function exportDesignSystems(header, filename, target, types) { //csv export for design systems
-  var csvString = "";
-  csvString += createExportHeader(header, ";");
-  var lists = [];
-  target.forEach(list => {
-    lib[list].content.forEach((item, index) => {
-      if(find(lib[list].rel, "id", item[lib[list].rel]).active == 1 && types.includes(find(lib[list].rel, "id", item[lib[list].rel]).type)) {
-        lists.push(item);
-      }
-    });
-  });
-  lists.sort((a, b) => {
-    var pictoA = find("pictos", "id", a.pictos) || find("track", "id", a.track) || find("sector", "id", a.sector) || find("stand", "id", a.stand);
-    var pictoB = find("pictos", "id", b.pictos) || find("track", "id", b.track) || find("sector", "id", b.sector) || find("stand", "id", b.stand);
-    if(Number(pictoA.category) < Number(pictoB.category)) return -1;
-    else if(Number(pictoA.category) > Number(pictoB.category)) return 1;
-    else if(Number(pictoA.subcategory) < Number(pictoB.subcategory)) return -1;
-    else if(Number(pictoA.subcategory) > Number(pictoB.subcategory)) return 1;
-    else if(Number(pictoA.order) < Number(pictoB.order)) return -1;
-    else if(Number(pictoA.order) > Number(pictoB.order)) return 1;
-    else return 0;
-  });
-  lists.forEach((item, i) => {
-      header.forEach((key, index) => {
-        if(key.type == "generated") {
-          csvString += key.get(item, i);
-        }
-        else if(key.type == "link")
-        {
-          lib[key.key].content.forEach((link) => {
-            if(link.id == item[key.key]) {
-              csvString += link.name;
-            }
-          });
-        }
-        else {
-          csvString += item[key.key];
-        }
-        csvString += (index < header.length -1) ? ";" : "";
-      });
-      csvString += "\n";
-  });
-  downloadFile(csvString, filename);
-}
-
-function exportPictosEditor(header, filename, target, types) { //csv export for signaletik Editor db -> issues.sbb.ch/projects/SEE
-  var csvString = "";
-  csvString += createExportHeader(header, ";");
-  var lists = [];
-  target.forEach(list => {
-    lists = lists.concat(lib[list].content);
-  });
-  lists.sort((a, b) => {
-    if(a.id < b.id) return -1;
-    else if(a.id > b.id) return 1;
-    else return 0;
-  });
-  lists.forEach((item, i) => {
-    if(item.active == 1 && types.includes(item.type)) {
-      header.forEach((key, index) => {
-        if(key.type == "generated") {
-          csvString += key.get(item, i);
-        }
-        else if(key.type == "link")
-        {
-          csvString += find(key.key, "id", item[key.key]).name;
-        }
-        else {
-          csvString += item[key.key];
-        }
-        csvString += (index < header.length -1) ? ";" : "";
-      });
-      csvString += "\n";
-    }
-  });
-  downloadFile(csvString, filename);
-}
-
-function exportSVGEditor(header, filename, target) { //csv export containing the svg graphics for signaletik Editor db -> issues.sbb.ch/projects/SEE
-  var lang = ["de", "fr", "it"];
-  var dir = ["l", "r"];
-  var csvString = "";
-  var id = 1;
-  csvString += createExportHeader(header, ",");
-  lib[target].content.forEach((item, i) => {
-    if(item.active == 1 && (item.type == "picto" || item.type == "generated")) {
-      if(item.dir == 1 && item.lang == 1) {
-        lang.forEach(l => {
-          dir.forEach(d => {
-            csvString += createLine(item, header, id, l, d);
-            id++;
-          });
-        });
-      }
-      else if(item.dir == 1) {
-        dir.forEach(d => {
-          csvString += createLine(item, header, id, false, d);
-          id++;
-        });
-
-      }
-      else if(item.lang == 1) {
-        lang.forEach(l => {
-          csvString += createLine(item, header, id, l, false);
-          id++;
-        });
-      }
-      else {
-        csvString += createLine(item, header, id, false, false);
-        id++;
-      }
-    }
-  });
-  downloadFile(csvString, filename);
 }
 
 function unsaveChanges(state) {
