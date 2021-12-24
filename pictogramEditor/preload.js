@@ -1,7 +1,6 @@
-const {
-    contextBridge,
-    ipcRenderer
-} = require("electron");
+const fs = require("fs")
+const path = require("path")
+const { contextBridge, ipcRenderer } = require("electron")
 
 window.addEventListener('DOMContentLoaded', () => {
   const replaceText = (selector, text) => {
@@ -12,19 +11,17 @@ window.addEventListener('DOMContentLoaded', () => {
   for (const type of ['chrome', 'node', 'electron']) {
     replaceText(`${type}-version`, process.versions[type])
   }
-});
-
-contextBridge.exposeInMainWorld("api", {
+})
+contextBridge.exposeInMainWorld("ipc", {
   send: (channel, args) => {
-    if (["toMain"].includes(channel)) {
-      ipcRenderer.send(channel, args);
-    }
+    ipcRenderer.send(channel, args)
   },
-  receive: (channel, callback) => {
-    if (["fromMain"].includes(channel)) {
-      ipcRenderer.on(channel, (event, args) => {
-        callback(args);
-      });
-    }
+  on: (channel, callback) => {
+    ipcRenderer.on(channel, (event, args) => {
+      callback(args)
+    })
+  },
+  removeAll: (channel) => {
+    ipcRenderer.removeAllListeners(channel)
   }
-});
+})

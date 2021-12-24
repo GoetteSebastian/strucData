@@ -1,8 +1,14 @@
 const {app, BrowserWindow, dialog, ipcMain, Menu } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const isDev = require('electron-is-dev')
 let mainWindow
-var openFile
+var openFile = {
+  path: "",
+  data: {},
+  isFile: false,
+  unsavedChanges: false
+}
 var unsavedFile = false
 
 app.whenReady().then(() => {
@@ -17,7 +23,10 @@ app.whenReady().then(() => {
     }
   })
 
-  mainWindow.loadFile('content/index.html')
+  mainWindow.loadURL(
+    isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '../build/index.html')}`
+   )
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
@@ -26,15 +35,6 @@ app.whenReady().then(() => {
     if(unsavedFile) {
       e.preventDefault()
       closeOnUnsavedData(true)
-    }
-  })
-
-  ipcMain.on('toMain', (event, args) => {
-    if(args.action == "open file changed") {
-      unsavedFile = args.data.state
-    }
-    else if(args.action == "send library for saving") {
-      saveFile(args.data.json, args.data.close, args.data.quit)
     }
   })
 
@@ -83,8 +83,8 @@ const menu = Menu.buildFromTemplate(template)
 Menu.setApplicationMenu(menu)
 
 function saveFile(data, closeWindow, quitApp) {
-  if(openFile) {
-    writeFile(openFile, data, closeWindow, quitApp);
+  if(openFile.path.length > 0) {
+    writeFile(openFile.path, openFile.data, closeWindow, quitApp);
   }
   else {
     dialog.showSaveDialog(mainWindow, {
@@ -115,7 +115,7 @@ function writeFile(filePath, data, closeWindow, quitApp) {
     }
     mainWindow.webContents.send("fromMain", {action: "notification", data: {text: "Datei wurde erfolgreich gespeichert. ", type: "success"}})
     mainWindow.webContents.send("fromMain", {action: "set title", data: {fileName: filePath}})
-    openFile = filePath
+    openFile.path = filePath
     unsavedFile = false
     if(quitApp) app.quit()
     if(closeWindow) mainWindow.close()
@@ -140,8 +140,10 @@ function getFile() {
         alert("An error ocurred reading the file :" + err.message)
         return
       }
-      mainWindow.webContents.send("fromMain", {action: "load file", data: {json: data, file: result.filePaths[0]}})
-      openFile = result.filePaths[0]
+      openFile.path = result.filePaths[0]
+      openFile.data = JSON.parse(data)
+      openFile.isFile = true
+      mainWindow.webContents.send("GET/lists.res", openFile.data)
     })
   })
 }
@@ -175,3 +177,17 @@ function closeOnUnsavedData(quit) {
     }
   })
 }
+
+ipcMain.on("GET/lists.req", (event, args) => {
+  if(openFile.isFile) {
+    mainWindow.webContents.send("GET/lists.res", openFile.data)
+  }
+})
+ipcMain.on("GET/entry.req", (event, args) => {
+  if(openFile.isFile && args.list && typeof args.id == "number") {
+    mainWindow.webContents.send("GET/entry.res", {
+      content: openFile.data[args.list].content.find((item) => {return item.id === args.id}),
+      prototype: openFile.data[args.list].prototype
+    })
+  }
+})
