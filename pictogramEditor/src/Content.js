@@ -7,6 +7,7 @@ var Content = (props) => {
   const [lists, setLists] = useState([])
   useEffect(() => {
     window.ipc.on('GET/lists.res', (args) => {
+      console.log(args)
       setLists(args)
     })
   }, [])
@@ -17,9 +18,11 @@ var Content = (props) => {
   return (
     <ContentContext.Provider value={lists}>
       <div id="contentCanvas">
-        {Object.keys(lists).map((list, index) =>
+        {
+          Object.keys(lists).map((list, index) =>
             <List list={list} key={index}/>
-        )}
+          )
+        }
       </div>
     </ContentContext.Provider>
   )

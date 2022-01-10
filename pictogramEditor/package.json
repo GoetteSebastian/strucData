@@ -3,7 +3,7 @@
   "productName": "List and Link",
   "version": "1.0.0",
   "description": "The Pictogram Editor provides frontend functionality to modify the pictoLibrary.json Library. ",
-  "main": "pictogramEditor.js",
+  "main": "main.js",
   "scripts": {
     "start": "react-scripts start",
     "electron": "wait-on tcp:3000 && electron .",

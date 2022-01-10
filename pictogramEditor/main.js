@@ -9,7 +9,72 @@ var openFile = {
   isFile: false,
   unsavedChanges: false
 }
-var unsavedFile = false
+
+const dataTypes = {
+  text: {
+    name: "Text",
+    key: "text",
+    showKey: true,
+    showLink: false,
+    showName: true,
+    showRel: false,
+    default: ""
+  },
+  longText: {
+    name: "Langer Text",
+    key: "longText",
+    showKey: true,
+    showLink: false,
+    showName: true,
+    showRel: false,
+    default: ""
+  },
+  number: {
+    name: "Nummer",
+    key: "number",
+    showKey: true,
+    showLink: false,
+    showName: true,
+    showRel: false,
+    default: 0
+  },
+  link: {
+    name: "Verknüpfung",
+    key: "link",
+    showKey: false,
+    showLink: true,
+    showName: false,
+    showRel: true,
+    default: null
+  },
+  multiLink: {
+    name: "Mehrfach Verknüpfung",
+    key: "multiLink",
+    showKey: false,
+    showLink: true,
+    showName: false,
+    showRel: true,
+    default: []
+  },
+  boolean: {
+    name: "Ja / Nein",
+    key: "boolean",
+    showKey: true,
+    showLink: false,
+    showName: true,
+    showRel: false,
+    default: false
+  },
+  svg: {
+    name: "SVG Grafik",
+    key: "svg",
+    showKey: true,
+    showLink: false,
+    showName: true,
+    showRel: false,
+    default: ""
+  }
+}
 
 app.whenReady().then(() => {
   mainWindow = new BrowserWindow({
@@ -32,14 +97,14 @@ app.whenReady().then(() => {
   })
 
   app.on("before-quit", (e) => {
-    if(unsavedFile) {
+    if(openFile.unsavedChanges) {
       e.preventDefault()
       closeOnUnsavedData(true)
     }
   })
 
   mainWindow.on("close", (e) => {
-    if(unsavedFile) {
+    if(openFile.unsavedChanges) {
       e.preventDefault()
       closeOnUnsavedData(false)
     }
@@ -116,7 +181,7 @@ function writeFile(filePath, data, closeWindow, quitApp) {
     mainWindow.webContents.send("fromMain", {action: "notification", data: {text: "Datei wurde erfolgreich gespeichert. ", type: "success"}})
     mainWindow.webContents.send("fromMain", {action: "set title", data: {fileName: filePath}})
     openFile.path = filePath
-    unsavedFile = false
+    openFile.unsavedChanges = false
     if(quitApp) app.quit()
     if(closeWindow) mainWindow.close()
   })
@@ -165,7 +230,7 @@ function closeOnUnsavedData(quit) {
         mainWindow.webContents.send("fromMain", {action: "get library for saving", data: {close: true, quit: quit}})
         break
       case 1:
-        unsavedFile = false
+        openFile.unsavedChanges = false
         if(quit) app.quit()
         mainWindow.close()
         break
@@ -183,11 +248,89 @@ ipcMain.on("GET/lists.req", (event, args) => {
     mainWindow.webContents.send("GET/lists.res", openFile.data)
   }
 })
+
+ipcMain.on("GET/listEdit.req", (event, args) => {
+  if(openFile.isFile) {
+    var listKeys = Object.keys(openFile.data)
+    listKeys.splice(listKeys.indexOf(args.list), 1)
+    var response = listKeys.map(key => {
+      if(key != args.list) {
+        var item = {key: key, name: openFile.data[key].name}
+        item.prototype = openFile.data[key].prototype.filter(proto => {
+          return !["index", "link", "multiLink"].includes(proto.type)
+        })
+        return item
+      }
+    })
+    mainWindow.webContents.send("GET/listEdit.res", {
+      prototype: openFile.data[args.list].prototype,
+      name: openFile.data[args.list].name,
+      sort: openFile.data[args.list].sort,
+      linkableLists: response,
+      dataTypes: dataTypes
+    })
+  }
+})
+
 ipcMain.on("GET/entry.req", (event, args) => {
   if(openFile.isFile && args.list && typeof args.id == "number") {
     mainWindow.webContents.send("GET/entry.res", {
-      content: openFile.data[args.list].content.find((item) => {return item.id === args.id}),
+      content: openFile.data[args.list].content.find((item) => {return item.id === args.id}) || buildEntryContent(openFile.data[args.list].prototype),
       prototype: openFile.data[args.list].prototype
     })
   }
 })
+
+ipcMain.on("PUT/entry.req", (event, args) => {
+  const index = openFile.data[args.list].content.findIndex(item => item.id == args.id)
+  if(index !== -1 && openFile.isFile) {
+    openFile.data[args.list].content[index] = args.entry
+    mainWindow.webContents.send("PUT/entry.res", {status: "success"})
+    mainWindow.webContents.send("GET/lists.res", openFile.data)
+    openFile.unsavedChanges = true
+  }
+  else {
+    mainWindow.webContents.send("PUT/entry.res", {status: "error"})
+  }
+})
+
+ipcMain.on("POST/entry.req", (event, args) => {
+  if(openFile.isFile) {
+    var content = args.entry
+    if(openFile.data[args.list].content.length === 0) {
+      content.id = 0
+      openFile.data[args.list].content.push(content)
+    }
+    else {
+      content.id = Math.max.apply(Math, openFile.data[args.list].content.map((item) => item.id)) + 1
+      openFile.data[args.list].content.push(content)
+    }
+    mainWindow.webContents.send("POST/entry.res", {status: "success"})
+    mainWindow.webContents.send("GET/lists.res", openFile.data)
+  }
+  else {
+    mainWindow.webContents.send("POST/entry.res", {status: "error"})
+  }
+})
+
+ipcMain.on("DELETE/entry.req", (event, args) => {
+  const index = openFile.data[args.list].content.findIndex(item => item.id == args.id)
+  if(index !== -1 && openFile.isFile) {
+    //todo: check if element can be deleted or if it is used as link in other lists
+    openFile.data[args.list].content.splice(index, 1)
+    mainWindow.webContents.send("DELETE/entry.res", {status: "success"})
+    mainWindow.webContents.send("GET/lists.res", openFile.data)
+    openFile.unsavedChanges = true
+  }
+  else {
+    mainWindow.webContents.send("DELETE/entry.res", {status: "error"})
+  }
+})
+
+const buildEntryContent = (prototype) => {
+  var content = {}
+  prototype.map((proto, index) => {
+    content[proto.key] = dataTypes[proto.type].default
+  })
+  return content
+}

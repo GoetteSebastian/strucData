@@ -7,9 +7,8 @@ import { MultiLinkEdit } from "./MultiLink"
 import { BooleanEdit } from "./Boolean"
 import { SVGEdit } from "./SVG"
 
-
-var ValueEdit = (props) => {
-  const [entry, setEntry] = useState({content: {}, prototype: []})
+var EntryEdit = (props) => {
+  const [entry, setEntry] = useState({content: [], prototype: []})
   const updateEntry = (args) => {
     setEntry(prevEntry => ({
       ...prevEntry,
@@ -23,14 +22,48 @@ var ValueEdit = (props) => {
     window.ipc.on('GET/entry.res', (args) => {
       setEntry(args)
     })
+    window.ipc.on('PUT/entry.res', (args) => {
+      console.log(args.status)
+      if(args.status == "success") {
+        props.setActions("close")
+      }
+    })
+    window.ipc.on('POST/entry.res', (args) => {
+      console.log(args.status)
+      if(args.status == "success") {
+        props.setActions("close")
+      }
+    })
+    window.ipc.on('DELETE/entry.res', (args) => {
+      console.log(args.status)
+      if(args.status == "success") {
+        props.setActions("close")
+      }
+    })
     window.ipc.send('GET/entry.req', {list: props.list, id:props.uid})
   }, [])
   useEffect(() => () => {
     window.ipc.removeAll('GET/entry.res')
+    window.ipc.removeAll('PUT/entry.res')
+    window.ipc.removeAll('POST/entry.res')
+    window.ipc.removeAll('DELETE/entry.res')
   }, [])
   useEffect(() => {
-    console.log(entry)
-  }, [ entry ])
+    switch(props.actions) {
+      case "put":
+        window.ipc.send('PUT/entry.req', {entry: entry.content, list: props.list, id: props.uid})
+        props.setActions("clear")
+        break
+      case "post":
+        window.ipc.send('POST/entry.req', {entry: entry.content, list: props.list})
+        props.setActions("clear")
+        break
+      case "delete":
+        window.ipc.send('DELETE/entry.req', {list: props.list, id: props.uid})
+        props.setActions("clear")
+        break
+    }
+  }, [ props.actions ])
 
  return (
    <>
@@ -65,4 +98,4 @@ var ValueEdit = (props) => {
   )
 }
 
-export default ValueEdit
+export default EntryEdit
