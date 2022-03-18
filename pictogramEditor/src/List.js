@@ -17,10 +17,10 @@ var List = (props) => {
         setAddEntryDialog(false)
         break
       case "save":
-        setAddEntryActions("post")
+        setAddEntryActions("put")
         break
       case "delete":
-        setAddEntryActions("delete")
+        setAddEntryActions("delete") //do we need that here?
         break
       case "clear":
         setAddEntryActions("clear")
@@ -28,22 +28,23 @@ var List = (props) => {
     }
   }
 
-  //edit table elements
-  const [ editTableDialog, setEditTableDialog ] = useState(false)
-  const [ editTableActions, setEditTableActions ] = useState("clear")
-  const editTableDialogActions = (action) => {
+  //edit list elements
+  const [ editListDialog, setEditListDialog ] = useState(false)
+  const [ editListActions, setEditListActions ] = useState("clear")
+  const editListDialogActions = (action) => {
     switch (action) {
       case "close":
-        setEditTableDialog(false)
+        setEditListDialog(false)
         break
       case "save":
-        csetAddEntryActions("put")
+        setEditListActions("post")
         break
       case "delete":
-        setAddEntryActions("delete")
+        setEditListActions("delete")
         break
       case "clear":
-        setAddEntryActions("clear")
+        setEditListActions("clear")
+        break
     }
   }
 
@@ -51,7 +52,7 @@ var List = (props) => {
     <>
      <div key={lists[props.list].id}>
       <h1>{lists[props.list].name}
-        <button className="right" onClick={() => {setEditTableDialog(true)}}>Tabelle bearbeiten</button>
+        <button className="right" onClick={() => {setEditListDialog(true)}}>Tabelle bearbeiten</button>
         <button className="right red marginRight" onClick={() => {setAddEntryDialog(true)}}>Elemente hinzufügen</button>
       </h1>
       <table>
@@ -59,7 +60,9 @@ var List = (props) => {
           <tr>
             {
               lists[props.list].prototype.map((prototype, index) =>
-                prototype.type != "index" ? <th key={index}>{prototype.name}</th> : null
+                prototype.type != "index"
+                  ? <th key={index}>{prototype.name}</th>
+                  : null
               )
             }
           </tr>
@@ -81,9 +84,9 @@ var List = (props) => {
        : null
      }
      {
-       editTableDialog ?
-        <Dialog action={editTableDialogActions}>
-          <ListEdit list={props.list} actions={editTableActions} setActions={editTableDialogActions} />
+       editListDialog ?
+        <Dialog action={editListDialogActions}>
+          <ListEdit list={props.list} actions={editListActions} setActions={editListDialogActions} />
         </Dialog>
       : null
      }

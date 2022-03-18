@@ -40,7 +40,6 @@ var ListEdit = (props) => {
       }
     })
     window.ipc.send('GET/listEdit.req', {list: props.list})
-    window.ipc.send('GET/linkableLists.req', {list: props.list})
   }, [])
 
   useEffect(() => () => {
@@ -53,11 +52,13 @@ var ListEdit = (props) => {
   useEffect(() => {
     switch(props.actions) {
       case "put":
-        window.ipc.send('PUT/listEdit.req', {entry: entry.content, list: props.list, id: props.uid})
+        console.log(list)
+        window.ipc.send('PUT/listEdit.req', {list: list})
         props.setActions("clear")
         break
       case "post":
-        window.ipc.send('POST/listEdit.req', {entry: entry.content, list: props.list})
+        console.log({prototype: list.prototype, list: props.list})
+        window.ipc.send('POST/listEdit.req', {prototype: list.prototype, list: props.list}) // add name and sort to the mix
         props.setActions("clear")
         break
       case "delete":
@@ -83,12 +84,13 @@ var ListEdit = (props) => {
       name: "",
       key: "",
       rel: "",
-      new: true
+      action: "new"
     })
     setList(prevList => ({
       ...prevList,
       prototype: newPrototype
     }))
+    console.log(list)
   }
 
   return (
@@ -113,7 +115,7 @@ var ListEdit = (props) => {
       {
         list.prototype.map((proto, index) => {
           if(proto.type != "index") {
-            return <PrototypeEdit prototype={proto} key={index} uid={index} update={updatePrototype} linkableLists={list.linkableLists} dataTypes={list.dataTypes} editable={proto.new ? true : false}/>
+            return <PrototypeEdit prototype={proto} key={index} uid={index} update={updatePrototype} linkableLists={list.linkableLists} dataTypes={list.dataTypes} editable={proto.action == "new" ? true : false}/>
           }
         }
         )

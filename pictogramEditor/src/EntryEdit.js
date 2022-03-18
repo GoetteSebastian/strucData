@@ -50,12 +50,12 @@ var EntryEdit = (props) => {
   }, [])
   useEffect(() => {
     switch(props.actions) {
-      case "put":
-        window.ipc.send('PUT/entry.req', {entry: entry.content, list: props.list, id: props.uid})
+      case "post":
+        window.ipc.send('POST/entry.req', {entry: entry.content, list: props.list, id: props.uid})
         props.setActions("clear")
         break
-      case "post":
-        window.ipc.send('POST/entry.req', {entry: entry.content, list: props.list})
+      case "put":
+        window.ipc.send('PUT/entry.req', {entry: entry.content, list: props.list})
         props.setActions("clear")
         break
       case "delete":

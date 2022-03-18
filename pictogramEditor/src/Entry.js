@@ -12,7 +12,7 @@ var Entry = (props) => {
         setDialog(false)
         break
       case "save":
-        setActions("put")
+        setActions("post")
         break
       case "delete":
         setActions("delete")
