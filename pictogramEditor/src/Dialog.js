@@ -10,7 +10,7 @@ var Dialog = (props) => {
           {props.children}
         </div>
         <div className="editFooter">
-          <button onClick={() => {props.action("delete")}}>Löschen</button>
+          <button onClick={() => {props.action("delete")}} disabled={!props.isDeletable}>Löschen</button>
           <button className="red" onClick={() => {props.action("save")}}>Speichern</button>
           <button onClick={() => {props.action("close")}}>Abbrechen</button>
         </div>

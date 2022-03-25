@@ -52,7 +52,7 @@ var List = (props) => {
     <>
      <div key={lists[props.list].id}>
       <h1>{lists[props.list].name}
-        <button className="right" onClick={() => {setEditListDialog(true)}}>Tabelle bearbeiten</button>
+        <button className="icon" onClick={() => {setEditListDialog(true)}}><span className="icon edit"></span></button>
         <button className="right red marginRight" onClick={() => {setAddEntryDialog(true)}}>Elemente hinzufügen</button>
       </h1>
       <table>

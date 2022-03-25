@@ -52,13 +52,11 @@ var ListEdit = (props) => {
   useEffect(() => {
     switch(props.actions) {
       case "put":
-        console.log(list)
         window.ipc.send('PUT/listEdit.req', {list: list})
         props.setActions("clear")
         break
       case "post":
-        console.log({prototype: list.prototype, list: props.list})
-        window.ipc.send('POST/listEdit.req', {prototype: list.prototype, list: props.list}) // add name and sort to the mix
+        window.ipc.send('POST/listEdit.req', {prototype: list.prototype, list: props.list, name: list.name, sort: list.sort}) // add name and sort to the mix
         props.setActions("clear")
         break
       case "delete":
@@ -110,7 +108,7 @@ var ListEdit = (props) => {
         />
       </div>
       <div className="inputWrapper">
-      <button className="red right" onClick={(e) => {addColumn()}}>Neue Spalte</button>
+      <button className="red right" onClick={(e) => {addColumn()}}>Neues Attribut</button>
       </div>
       {
         list.prototype.map((proto, index) => {

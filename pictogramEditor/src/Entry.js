@@ -6,6 +6,7 @@ import EntryEdit from "./EntryEdit"
 var Entry = (props) => {
   const [ dialog, setDialog ] = useState(false)
   const [ actions, setActions] = useState("clear")
+  const [ isDeletable, setIsDeletable ] = useState(false)
   const dialogActions = (action) => {
     switch(action) {
       case "close":
@@ -36,8 +37,8 @@ var Entry = (props) => {
       </tr>
       {
         dialog ?
-          <Dialog action={dialogActions}>
-            <EntryEdit list={props.list} uid={props.content.id} actions={actions} setActions={dialogActions} />
+          <Dialog action={dialogActions} isDeletable={isDeletable}>
+            <EntryEdit list={props.list} uid={props.content.id} actions={actions} setActions={dialogActions} setIsDeletable={setIsDeletable} />
           </Dialog>
         : null
       }

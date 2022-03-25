@@ -2,21 +2,23 @@ import { useState } from 'react'
 import Select from 'react-select'
 
 var PrototypeEdit = (props) => {
-
   const [ dataType, setDataType ] = useState(
     {
       value: {label: props.dataTypes[props.prototype.type].name, value: props.dataTypes[props.prototype.type].key},
-      options: Object.keys(props.dataTypes).map((type) => {return {label: props.dataTypes[type].name, value: props.dataTypes[type].key}})
+      options: Object.keys(props.dataTypes).map((type) => {
+        const option = {label: props.dataTypes[type].name, value: props.dataTypes[type].key}
+        props.linkableLists.filter(list => list.inUse == false).length == 0 && props.dataTypes[type].isLink ? option.disabled = true : null
+        return option
+      })
     }
   )
-
   const updateDataType = (args) => {
-    if(props.dataTypes[args.value].isLink && !props.dataTypes[props.prototype.type].isLink) { //from not link to link
+    if(props.dataTypes[args.value].isLink && !props.dataTypes[props.prototype.type].isLink) { //from "not link" to "link"
       props.update({uid: props.uid, key: "rel", value: displayValue.value.value})
       props.update({uid: props.uid, key: "key", value: linkedList.value.value})
       props.update({uid: props.uid, key: "name", value: linkedList.value.label})
     }
-    else if(!props.dataTypes[args.value].isLink && props.dataTypes[props.prototype.type].isLink) {
+    else if(!props.dataTypes[args.value].isLink && props.dataTypes[props.prototype.type].isLink) { //from "link" to "not link"
       props.update({uid: props.uid, key: "rel", value: ""})
       props.update({uid: props.uid, key: "key", value: ""})
       props.update({uid: props.uid, key: "name", value: ""})
@@ -35,7 +37,9 @@ var PrototypeEdit = (props) => {
           ? {label: props.prototype.name, value: props.prototype.key}
           : (props.linkableLists.length > 0 ? {label: props.linkableLists[0].name, value: props.linkableLists[0].key} : null)
         ,
-      options: props.linkableLists.map(list => {return {label: list.name, value: list.key}})
+      options: props.linkableLists.map(list => {
+        return {label: list.name, value: list.key}
+      })
     }
   )
 
@@ -93,6 +97,7 @@ var PrototypeEdit = (props) => {
             isClearable={false}
             onChange={(value) => {updateDataType(value)}}
             isDisabled={props.editable ? false : true}
+            isOptionDisabled={(option) => option.disabled}
         />
       </div>
       {
@@ -136,6 +141,7 @@ var PrototypeEdit = (props) => {
         </>
         : null
       }
+      <button className="icon" onClick={(e) => {console.log("remove")}}><span className="icon delete"></span></button>
     </div>
   )
 }

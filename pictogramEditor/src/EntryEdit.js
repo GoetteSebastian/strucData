@@ -20,7 +20,9 @@ var EntryEdit = (props) => {
   }
   useEffect(() => {
     window.ipc.on('GET/entry.res', (args) => {
+      console.log(args)
       setEntry(args)
+      props.setIsDeletable(args.isDeletable)
     })
     window.ipc.on('PUT/entry.res', (args) => {
       console.log(args.status)

@@ -211,6 +211,12 @@ button[disabled] {
   opacity: 0.6;
   cursor: default;
 }
+button.icon {
+  width: 36px;
+  height: 36px;
+  min-width: inherit;
+  padding: 6px;
+}
 #header button {
   margin: 3px 24px 3px 24px;
   font-size: 14px;
@@ -269,6 +275,13 @@ h1 {
   padding: 42px 20px 20px 20px;
   font-weight: 400;
 }
+h1 button.icon {
+  margin-left: 20px;
+  opacity: 0;
+}
+h1:hover button.icon {
+  opacity: 1;
+}
 .svgPreview {
   display: inline-block;
   width: 36px;
@@ -310,6 +323,7 @@ p.error{
   flex-direction: row;
   column-gap: 20px;
   row-gap: 20px;
+  align-items: flex-end;
 }
 .marginRight {
   margin-right: 20px;
@@ -324,4 +338,10 @@ span.icon.true {
 }
 span.icon.false {
   background-image: url("assets/cross-small.svg");
+}
+span.icon.delete {
+  background-image: url("assets/trash-small.svg");
+}
+span.icon.edit {
+  background-image: url("assets/pen-small.svg");
 }
