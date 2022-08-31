@@ -200,7 +200,6 @@ const readFile = () => {
       fileData.isFile = true
       mainWindow.webContents.send("PUSH/setTitle", {title: fileData.path})
       mainWindow.webContents.send("GET/lists.res", fileData.data)
-      sendListsToFrontend()
     })
   })
 }
@@ -297,11 +296,6 @@ const closeApp = () => {
 
 ipcMain.on("GET/lists.req", (event, args) => {
   mainWindow.webContents.send("GET/lists.res", fileData.data)
-  sendListsToFrontend()
-})
-
-ipcMain.on("GET/listsX.req", (event, args) => {
-  sendListsToFrontend()
 })
 
 ipcMain.on("GET/listEdit.req", (event, args) => {
@@ -386,7 +380,6 @@ ipcMain.on("POST/listEdit.req", (event, args) => { // Update existing List
   fileData.unsavedChanges = true
   mainWindow.webContents.send("POST/listEdit.res", {status: "success"})
   mainWindow.webContents.send("GET/lists.res", fileData.data)
-  sendListsToFrontend()
 })
 
 ipcMain.on("PUT/listEdit.req", (event, args) => {
@@ -401,7 +394,6 @@ ipcMain.on("PUT/listEdit.req", (event, args) => {
   }
   mainWindow.webContents.send("PUT/listEdit.res", {status: "success"})
   mainWindow.webContents.send("GET/lists.res", fileData.data)
-  sendListsToFrontend()
   fileData.unsavedChanges = true
 })
 
@@ -410,7 +402,6 @@ ipcMain.on("DELETE/listEdit.req", (event, args) => {
     delete fileData.data[args.list]
     mainWindow.webContents.send("DELETE/listEdit.res", {status: "success"})
     mainWindow.webContents.send("GET/lists.res", fileData.data)
-    sendListsToFrontend()
     fileData.unsavedChanges = true
   }
 })
@@ -435,7 +426,6 @@ ipcMain.on("POST/entry.req", (event, args) => {
     fileData.data[args.list].content[index] = args.entry
     mainWindow.webContents.send("PUT/entry.res", {status: "success"})
     mainWindow.webContents.send("GET/lists.res", fileData.data)
-    sendListsToFrontend()
     fileData.unsavedChanges = true
   }
   else {
@@ -455,7 +445,6 @@ ipcMain.on("PUT/entry.req", (event, args) => {
   }
   mainWindow.webContents.send("POST/entry.res", {status: "success"})
   mainWindow.webContents.send("GET/lists.res", fileData.data)
-  sendListsToFrontend()
   fileData.unsavedChanges = true
 })
 
@@ -510,10 +499,6 @@ const isPrototypeDeletable = (args) => {
     ).length == 0 && args.prototype.type != "index" ? true
   : false
   return result
-}
-
-const sendListsToFrontend = () => {
-  mainWindow.webContents.send("GET/listsX.res", Object.keys(fileData.data))
 }
 
 // PUT = Insert new Entry

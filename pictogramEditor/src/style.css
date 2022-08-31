@@ -414,26 +414,3 @@ button.icon.down {
   width: 24px;
   height: 24px;
 }
-
-#listsContainerCanvas {
-  display: flex;
-  padding-top: 96px;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: center;
-  row-gap: 16px;
-  column-gap: 16px;
-}
-
-div.listBoxContainer {
-  width: 338px;
-  height: 146px;
-  padding: 48px 24px 112px 24px;
-  background-color: #f6f6f6;
-  transition: background 225ms ease-in-out;
-}
-
-div.listBoxContainer:hover {
-  background-color: #e5e5e5;
-  transition: background 225ms ease-in-out;
-}

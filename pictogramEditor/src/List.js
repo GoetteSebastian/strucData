@@ -6,7 +6,6 @@ import ListEdit from "./ListEdit"
 import { ContentContext } from "./Content.js"
 
 var List = (props) => {
-  //TODO: Load List when loaded and get the list name from the Navigation Prop
   const lists = useContext(ContentContext)
 
   //add entry element

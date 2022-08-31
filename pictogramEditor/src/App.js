@@ -1,10 +1,7 @@
 import React, { useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from "react-router-dom"
 import Header from './Header'
 import Notifications from './Notifications'
 import Content from './Content'
-import Lists from './Lists'
-import List from './List'
 
 var App = () => {
   useEffect(() => {
@@ -26,13 +23,7 @@ var App = () => {
    <>
     <Notifications />
     <Header />
-    <BrowserRouter>
-      <Routes>
-        <Route index element={<Lists />} />
-        <Route path='list/:listId' element={<List list="Test1" />} />
-        <Route element={<Content />} />
-      </Routes>
-    </BrowserRouter>
+    <Content />
   </>
  )
 }
