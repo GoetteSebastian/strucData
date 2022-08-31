@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from 'react'
+import React, { useContext, useState } from 'react'
 import Entry from "./Entry"
 import EntryEdit from "./EntryEdit"
 import Dialog from "./Dialog"
@@ -6,11 +6,13 @@ import ListEdit from "./ListEdit"
 import { ContentContext } from "./Content.js"
 
 var List = (props) => {
+  //TODO: Load List when loaded and get the list name from the Navigation Prop
   const lists = useContext(ContentContext)
 
   //add entry element
   const [ addEntryDialog, setAddEntryDialog ] = useState(false)
   const [ addEntryActions, setAddEntryActions] = useState("clear")
+  const [ isDeletable, setIsDeletable ] = useState(false)
   const addEntryDialogActions = (action) => {
     switch(action) {
       case "close":
@@ -24,6 +26,8 @@ var List = (props) => {
         break
       case "clear":
         setAddEntryActions("clear")
+        break
+      default:
         break
     }
   }
@@ -45,6 +49,8 @@ var List = (props) => {
       case "clear":
         setEditListActions("clear")
         break
+      default: 
+        break
     }
   }
 
@@ -59,8 +65,8 @@ var List = (props) => {
         <thead>
           <tr>
             {
-              lists[props.list].prototype.map((prototype, index) =>
-                prototype.type != "index"
+              lists[props.list].prototype.sort((a, b) => a.sort - b.sort).map((prototype, index) =>
+                prototype.type !== "index"
                   ? <th key={index}>{prototype.name}</th>
                   : null
               )
@@ -69,7 +75,15 @@ var List = (props) => {
         </thead>
         <tbody>
           {
-            lists[props.list].content.map((content, index) =>
+            lists[props.list].content.sort((a, b) => { //TODO: add sort logic for links, they have to sort depending on the displayed link value and not the link index value
+              var result = 0
+              lists[props.list].sort.forEach(sortKey => {
+                if(result === 0) {
+                  result = a[sortKey] < b[sortKey] ? -1 : a[sortKey] > b[sortKey] ? 1 : 0
+                }
+              })
+              return result
+            }).map((content, index) =>
               <Entry list={props.list} content={content} prototype={lists[props.list].prototype} key={index}/>
             )
           }
@@ -78,15 +92,15 @@ var List = (props) => {
      </div>
      {
        addEntryDialog ?
-         <Dialog action={addEntryDialogActions}>
-           <EntryEdit list={props.list} uid={-1} actions={addEntryActions} setActions={addEntryDialogActions} />
+         <Dialog action={addEntryDialogActions} dialogTitle="Add new Entry" isDeletable={false}>
+           <EntryEdit list={props.list} uid={-1} actions={addEntryActions} setActions={addEntryDialogActions} setIsDeletable={setIsDeletable} />
          </Dialog>
        : null
      }
      {
        editListDialog ?
-        <Dialog action={editListDialogActions}>
-          <ListEdit list={props.list} actions={editListActions} setActions={editListDialogActions} />
+        <Dialog action={editListDialogActions} dialogTitle={"Edit List: " + lists[props.list].name} isDeletable={isDeletable}>
+          <ListEdit list={props.list} actions={editListActions} setActions={editListDialogActions} setIsDeletable={setIsDeletable} />
         </Dialog>
       : null
      }

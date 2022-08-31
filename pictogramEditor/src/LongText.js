@@ -1,8 +1,8 @@
+import React from "react"
+
 var LongTextRender = (props) => {
   return (
-    <td>
-      <p alt={props.value}>{props.value.substring(0,40) + "..."}</p>
-    </td>
+    <span alt={props.value}>{props.value.substring(0,40) + "..."}</span>
   )
 }
 

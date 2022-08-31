@@ -1,4 +1,4 @@
-import { useState, createContext, useEffect } from 'react'
+import React, { useState, createContext, useEffect } from 'react'
 import List from './List'
 
 export const ContentContext = createContext()
@@ -7,7 +7,6 @@ var Content = (props) => {
   const [lists, setLists] = useState([])
   useEffect(() => {
     window.ipc.on('GET/lists.res', (args) => {
-      console.log(args)
       setLists(args)
     })
   }, [])

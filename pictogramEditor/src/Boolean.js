@@ -1,8 +1,8 @@
+import React from "react"
+
 var BooleanRender = (props) => {
   return (
-    <td>
-      <span className={props.value ? "icon true" : "icon false"}></span>
-    </td>
+    <span className={props.value ? "icon true" : "icon false"}></span>
   )
 }
 

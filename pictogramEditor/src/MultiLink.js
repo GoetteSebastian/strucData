@@ -1,19 +1,24 @@
-import { useContext } from 'react'
+import React, { useContext } from 'react'
 import Select from 'react-select'
+import ValueRender from "./ValueRender"
 import { ContentContext } from "./Content.js"
 
 var MultiLinkRender = (props) => {
   const lists = useContext(ContentContext)
+  const getLink = (uid, key) => {
+    if(lists[props.prototypeKey].content.length > 0 && lists[props.prototypeKey].content.filter(item => item.id === uid).length > 0) {
+      var value = lists[props.prototypeKey].content.find((item) => {return item.id === uid})[props.rel]
+      var prototype = lists[props.prototypeKey].prototype.find(proto => proto.key === props.rel)
+      return <ValueRender type={prototype.type} value={value} rel={prototype.rel} prototypeKey={prototype.key} key={key}/>
+    }
+    else {
+      return "Error: Link not found!"
+    }
+  }
   return (
-    <td>
-      <p>
-        {
-          props.value.map((value, index) => {
-            return <span key={index} className="tag">{lists[props.prototypeKey].content.find((item) => {return item.id === value})[props.rel]}</span>
-          })
-        }
-      </p>
-    </td>
+      props.value.map((value, index) => {
+        return getLink(value, index)
+      })
   )
 }
 

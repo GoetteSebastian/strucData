@@ -1,10 +1,8 @@
+import React from "react"
+
 var SVGRender = (props) => {
   return (
-    <td>
-    {
-      props.value.length > 0 ? <img className="svg" src={`data:image/svg+xml;utf8,${encodeURIComponent(props.value)}`} /> : null
-    }
-    </td>
+    props.value.length > 0 ? <img className="svg" src={`data:image/svg+xml;utf8,${encodeURIComponent(props.value)}`} alt="svg preview" /> : null
   )
 }
 
@@ -15,7 +13,7 @@ var SVGEdit = (props) => {
   const loadSVG = (event) => {
     if(event.target.files.length > 0) {
       const parser = new DOMParser()
-      const reader = new FileReader
+      const reader = new FileReader()
       const file = event.target.files[0]
       reader.originalFileName = file.name.replace(".svg", "")
       reader.addEventListener('load', (e) => {
@@ -39,7 +37,7 @@ var SVGEdit = (props) => {
       <label>{props.prototype.name}</label>
       <div className="svgPreview" onClick={(e) => {inputElement.click()}}>
         {
-          props.value.length > 0 ? <img className="svg" src={`data:image/svg+xml;utf8,${encodeURIComponent(props.value)}`} /> : null
+          props.value.length > 0 ? <img className="svg" src={`data:image/svg+xml;utf8,${encodeURIComponent(props.value)}`} alt="svg preview"/> : null
         }
       </div>
       <input ref={input => inputElement = input} type="file" className="hidden" accept="image/svg+xml" onChange={(e) => {loadSVG(e)}} />

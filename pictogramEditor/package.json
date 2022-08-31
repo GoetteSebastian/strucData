@@ -1,13 +1,15 @@
 {
-  "name": "List and Link",
+  "name": "listandlink",
   "productName": "List and Link",
   "version": "1.0.0",
   "description": "The Pictogram Editor provides frontend functionality to modify the pictoLibrary.json Library. ",
+  "homepage": "./",
   "main": "main.js",
   "scripts": {
+    "build": "react-scripts build",
     "start": "react-scripts start",
     "electron": "wait-on tcp:3000 && electron .",
-    "package-mac": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=assets/icons/mac/icon.icns --prune=true --out=builds",
+    "package-mac": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=assets/icons/mac/icon.icns --prune=true --out=builds --ignore=\"assets|builds|public|src\"",
     "package-win": "electron-packager . --overwrite --asar --platform=win32 --arch=ia32 --prune=true --out=builds",
     "package-linux": "electron-packager . --overwrite --asar --platform=linux --arch=x64 --icon=assets/icons/png/1024x1024.png --prune=true --out=builds",
     "dev": "concurrently -k \"BROWSER=none npm start\" \"npm:electron\""
@@ -29,11 +31,12 @@
     "wait-on": "^6.0.0"
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.0",
+    "electron-is-dev": "^2.0.0",
+    "md5": "^2.3.0",
     "react": "^17.0.2",
-    "react-async": "^10.0.1",
     "react-dom": "^17.0.2",
-    "react-scripts": "^4.0.3",
+    "react-router-dom": "^6.3.0",
+    "react-scripts": "^2.1.8",
     "react-select": "^5.2.1"
   },
   "config": {},

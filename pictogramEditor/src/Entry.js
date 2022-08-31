@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import ValueRender from "./ValueRender"
 import Dialog from "./Dialog"
 import EntryEdit from "./EntryEdit"
@@ -21,6 +21,8 @@ var Entry = (props) => {
       case "clear":
         setActions("clear")
         break
+      default: 
+        break
     }
   }
 
@@ -30,8 +32,8 @@ var Entry = (props) => {
         setDialog(true)
       }}>
         {
-          props.prototype.map((p, i) =>
-            <ValueRender key={i} type={p.type} value={props.content[p.key]} rel={p.rel} prototypeKey={p.key}/>
+          props.prototype.sort((a, b) => a.sort - b.sort).map((p, i) =>
+            p.type !== "index" ? <td key={i}><ValueRender key={i} type={p.type} value={props.content[p.key]} rel={p.rel} prototypeKey={p.key}/></td> : null
           )
         }
       </tr>

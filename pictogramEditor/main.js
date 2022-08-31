@@ -1,9 +1,11 @@
-const {app, BrowserWindow, dialog, ipcMain, Menu } = require('electron')
+const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const isDev = require('electron-is-dev')
+const md5 = require('md5')
+
 let mainWindow
-var fileData = {
+var fileData = { //global data object
   path: "", //absolut path to the open file if already saved
   data: {}, //the data object, will be written as json string to the file, was parsed from the json string of the file
   isFile: false, //true = the file was already saved before, path exists, false = not jet saved as file
@@ -33,7 +35,7 @@ const dataTypes = {
     name: "Verknüpfung",
     key: "link",
     isLink: true,
-    default: 0
+    default: -1
   },
   multiLink: {
     name: "Mehrfach Verknüpfung",
@@ -74,7 +76,7 @@ app.whenReady().then(() => {
   })
 
   mainWindow.loadURL(
-    isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '../build/index.html')}`
+    isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, './build/index.html')}`
    )
 
   app.on('activate', () => {
@@ -121,7 +123,11 @@ const template = [
         label: "Speichern unter...",
         accelerator: "CmdOrCtrl+Shift+s",
         click: () => {
-          saveFileAs()
+          saveFileAs().then(result => {
+            console.log("done")
+          }, reason => {
+            console.log("fucked")
+          })
         }
       },
       isMac ? { role: 'close' } : { role: 'quit' }
@@ -166,7 +172,9 @@ const openFile = () => {
       }
     })
   }
-  else readFile()
+  else {
+    readFile()
+  }
 }
 
 const readFile = () => {
@@ -192,6 +200,7 @@ const readFile = () => {
       fileData.isFile = true
       mainWindow.webContents.send("PUSH/setTitle", {title: fileData.path})
       mainWindow.webContents.send("GET/lists.res", fileData.data)
+      sendListsToFrontend()
     })
   })
 }
@@ -201,7 +210,11 @@ const saveFile = async () => {
     fileData.isFile ? writeFile().then(result => {
       resolve()
     }) : saveFileAs().then(result => {
+      console.log("file saved")
       resolve()
+    }, (reason) => {
+      console.log("file not saved")
+      reject()
     })
   })
 }
@@ -219,7 +232,7 @@ const saveFileAs = async () => {
     }).then(result => {
       if(result.canceled) {
         console.log("Saveing abored")
-        reject() //return
+        reject()
       }
       fileData.path = result.filePath
       mainWindow.webContents.send("PUSH/setTitle", {title: fileData.path})
@@ -238,7 +251,7 @@ const writeFile = async () => {
     fs.writeFile(fileData.path, JSON.stringify(fileData.data), "utf8", function(err) {
       if(err) {
         mainWindow.webContents.send("PUSH/notification", {type: "error", text: "Datei konnte nicht gespeichert werden: "})
-        reject() //return
+        reject()
       }
       mainWindow.webContents.send("PUSH/notification", {type: "success", text: "Datei wurde erfolgreich gespeichert. "})
       fileData.unsavedChanges = false
@@ -284,54 +297,68 @@ const closeApp = () => {
 
 ipcMain.on("GET/lists.req", (event, args) => {
   mainWindow.webContents.send("GET/lists.res", fileData.data)
+  sendListsToFrontend()
+})
+
+ipcMain.on("GET/listsX.req", (event, args) => {
+  sendListsToFrontend()
 })
 
 ipcMain.on("GET/listEdit.req", (event, args) => {
   var listKeys = Object.keys(fileData.data)
-  if(args.list !== -1) {
-    listKeys.splice(listKeys.indexOf(args.list), 1)
-  }
-  var linkableLists = listKeys.filter(key => key != args.list).map(key => {
-    var item = {key: key, name: fileData.data[key].name, inUse: false}
+  var linkableLists = listKeys.filter(key => (fileData.data[key].prototype.filter(proto => Object.keys(dataTypes).filter(type => !dataTypes[type].isLink && type !== "index").includes(proto.type)).length > 0 && key !== args.list)).map(key => {
+    var list = {value: key, label: key}
     if(args.list !== -1) {
-      item.inUse = fileData.data[args.list].prototype.filter(proto => key == proto.name).length < 0 ? true : false
+      list.inUse = fileData.data[args.list].prototype.filter(proto => proto.key == key).length > 0 ? true : false
     }
-    item.prototype = fileData.data[key].prototype.filter(proto => {
-      return !["index", "link", "multiLink"].includes(proto.type)
+    list.attributes = fileData.data[key].prototype.filter(proto => Object.keys(dataTypes).filter(type => !dataTypes[type].isLink && type !== "index").includes(proto.type)).map(proto => {
+      return {value: proto.key, label: proto.name}
     })
-    return item
+    return list
   })
-  //todo: check if a proto entry can be deleted or if it is connected.
   if(args.list === -1) {
     var response = {
       name: "",
       sort: ["id"],
-      prototype: [{name: "Id", key: "id", type: "index", rel: ""}],
+      prototype: [{name: "Id", key: "id", type: "index", rel: "", sort: 0, isDeletable: false, uid: md5("id")}],
       linkableLists: linkableLists,
-      dataTypes: dataTypes
+      dataTypes: dataTypes,
+      isDeletable: false
     }
   }
   else {
     var response = {
-      prototype: fileData.data[args.list].prototype,
+      prototype: fileData.data[args.list].prototype.map(proto => {
+        proto.isDeletable = isPrototypeDeletable({prototype: proto, list: args.list})
+        proto.action = ""
+        proto.uid = md5(proto.key)
+        return proto
+      }),
       name: fileData.data[args.list].name,
       sort: fileData.data[args.list].sort,
       linkableLists: linkableLists,
-      dataTypes: dataTypes
+      dataTypes: dataTypes,
+      isDeletable: isListDeletable({list: args.list})
     }
   }
   mainWindow.webContents.send("GET/listEdit.res", response)
 })
 
-ipcMain.on("POST/listEdit.req", (event, args) => {
-  var newPrototype = args.prototype.map(proto => {
-    return {name: proto.name, key: proto.key, type: proto.type, rel: proto.rel}
+ipcMain.on("POST/listEdit.req", (event, args) => { // Update existing List
+  var newPrototype = args.prototype.filter(proto => !(isPrototypeDeletable({prototype: proto, list: args.list}) && proto.action == "delete")).sort((a, b) => a.sort - b.sort).map((proto, index) => {
+    return {name: proto.name, key: proto.key, type: proto.type, rel: proto.rel, sort: index}
   })
+  var deletedPrototypes = args.prototype.filter(proto => isPrototypeDeletable({prototype: proto, list: args.list}) && proto.action == "delete")
   fileData.data[args.list].prototype = newPrototype
+  deletedPrototypes.forEach((proto) => {
+    fileData.data[args.list].content.forEach((item, index) => {
+      delete fileData.data[args.list].content[index][proto.key]
+    })
+  })
   var newEntries = args.prototype.filter(proto => proto.action == "new")
-  newEntries.forEach((entry, index) => {
-    fileData.data[args.list].content.forEach((item, i, array) => {
-      array[i][entry.key] = dataTypes[entry.type].default
+  newEntries.forEach((entry) => {
+    fileData.data[args.list].content.forEach((item, index, array) => {
+      array[index][entry.key] = dataTypes[entry.type].default
     })
   })
   fileData.data[args.list].sort = args.sort
@@ -359,11 +386,12 @@ ipcMain.on("POST/listEdit.req", (event, args) => {
   fileData.unsavedChanges = true
   mainWindow.webContents.send("POST/listEdit.res", {status: "success"})
   mainWindow.webContents.send("GET/lists.res", fileData.data)
+  sendListsToFrontend()
 })
 
 ipcMain.on("PUT/listEdit.req", (event, args) => {
   var newPrototype = args.list.prototype.map(proto => {
-    return {name: proto.name, key: proto.key, type: proto.type, rel: proto.rel}
+    return {name: proto.name, key: proto.key, type: proto.type, rel: proto.rel, sort: proto.sort}
   })
   fileData.data[args.list.name] = {
     name: args.list.name,
@@ -373,7 +401,18 @@ ipcMain.on("PUT/listEdit.req", (event, args) => {
   }
   mainWindow.webContents.send("PUT/listEdit.res", {status: "success"})
   mainWindow.webContents.send("GET/lists.res", fileData.data)
+  sendListsToFrontend()
   fileData.unsavedChanges = true
+})
+
+ipcMain.on("DELETE/listEdit.req", (event, args) => {
+  if(isListDeletable({list: args.list})) {
+    delete fileData.data[args.list]
+    mainWindow.webContents.send("DELETE/listEdit.res", {status: "success"})
+    mainWindow.webContents.send("GET/lists.res", fileData.data)
+    sendListsToFrontend()
+    fileData.unsavedChanges = true
+  }
 })
 
 ipcMain.on("GET/entry.req", (event, args) => {
@@ -396,6 +435,7 @@ ipcMain.on("POST/entry.req", (event, args) => {
     fileData.data[args.list].content[index] = args.entry
     mainWindow.webContents.send("PUT/entry.res", {status: "success"})
     mainWindow.webContents.send("GET/lists.res", fileData.data)
+    sendListsToFrontend()
     fileData.unsavedChanges = true
   }
   else {
@@ -415,6 +455,7 @@ ipcMain.on("PUT/entry.req", (event, args) => {
   }
   mainWindow.webContents.send("POST/entry.res", {status: "success"})
   mainWindow.webContents.send("GET/lists.res", fileData.data)
+  sendListsToFrontend()
   fileData.unsavedChanges = true
 })
 
@@ -424,6 +465,7 @@ ipcMain.on("DELETE/entry.req", (event, args) => {
     fileData.data[args.list].content.splice(index, 1)
     mainWindow.webContents.send("DELETE/entry.res", {status: "success"})
     mainWindow.webContents.send("GET/lists.res", fileData.data)
+    sendListsToFrontend()
     fileData.unsavedChanges = true
   }
   else {
@@ -432,16 +474,46 @@ ipcMain.on("DELETE/entry.req", (event, args) => {
 })
 
 const isEntryDeletable = (args) => {
-  var result = false
-  Object.keys(fileData.data).filter(list => {
-    return list !== args.list && fileData.data[list].prototype.filter(proto => {return proto.key == args.list && Object.keys(dataTypes).filter(type => dataTypes[type].isLink).includes(proto.type)}).length > 0
-  }).forEach((list) => {
-    fileData.data[list].content.forEach((e) => {
-      if(Array.isArray(e[args.list])) result = e[args.list].includes(args.id) ? false : true
-      else result = e[args.list] == args.id ? false : true
+  var result = true
+  Object.keys(fileData.data).filter(list => { //filter list keys and pass only the ones which are linked to the list of the validating entry
+    return list !== args.list && //true if the given list is unequal to the list of the validating entry, else false
+      fileData.data[list].prototype.filter(proto => { //filter prototypes to validate if there is a link to the given list
+        return proto.key === args.list && //true if prototype key equals to the list of the validating entry (link to the given list is existent), else false
+        Object.keys(dataTypes).filter(type => dataTypes[type].isLink).includes(proto.type)}).length > 0 //true if prototype is of type link, else false
+  }).forEach(list => { //loop list keys which have been filtered and have a link to the list of the validating entry
+    fileData.data[list].content.forEach(entry => { //loop data (content) of the list so validate if the validating entry is linked to on of the entries
+      if(Array.isArray(entry[args.list])) result = entry[args.list].includes(args.id) ? false : result //if the entry value is an array (multi link): true if the array of values includes the id of the validating entry, else false
+      else result = entry[args.list] === args.id ? false : result //else (not multi link): true if entry value equals to the validating entry id, else false
     })
   })
   return result
+}
+
+const isListDeletable = (args) => {
+  var result = false
+  Object.keys(fileData.data).filter(list => list !== args.list).forEach(list => {
+    result = fileData.data[list].prototype.find(proto => {return (proto.key == args.list && Object.keys(dataTypes).filter(type => dataTypes[type].isLink).includes(proto.type))}) ? false : true
+  })
+  return result
+}
+
+const isPrototypeDeletable = (args) => {
+  var result = Object.keys(fileData.data).filter(list =>
+      list != args.list && //list is not the current list
+      fileData.data[list].prototype.filter(proto =>
+        proto.rel == args.prototype.key && // Some field relates to the current prototype
+        proto.key == args.list && // Some field is linked to the current list
+        Object.keys(dataTypes).filter(type =>
+          dataTypes[type].isLink
+        ).includes(proto.type) // Some field is of type link or index
+      ).length > 0 // amount of links found
+    ).length == 0 && args.prototype.type != "index" ? true
+  : false
+  return result
+}
+
+const sendListsToFrontend = () => {
+  mainWindow.webContents.send("GET/listsX.res", Object.keys(fileData.data))
 }
 
 // PUT = Insert new Entry

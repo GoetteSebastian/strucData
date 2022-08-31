@@ -1,4 +1,4 @@
-import { useState } from "react"
+import React, { useState } from "react"
 import logo from './sbblogo.svg'
 import Dialog from "./Dialog"
 import ListEdit from "./ListEdit"
@@ -22,13 +22,15 @@ var Header = () => {
       case "clear":
         setAddListActions("clear")
         break
+      default: 
+        break
     }
   }
 
  return (
    <>
     <div id="header">
-      <img src={logo} className="mod_header_logo_content" />
+      <img src={logo} className="mod_header_logo_content" alt="SBB Logo" />
       <button id="redrawCanvas" onClick={() => {buildViewPort()}}>Aktualisieren</button>
       <button id="createNewList" onClick={() => {setAddListDialog(true)}}>Neue Tabelle erstellen</button>
     </div>

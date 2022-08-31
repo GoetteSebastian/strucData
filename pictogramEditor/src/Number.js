@@ -1,8 +1,8 @@
+import React from "react"
+
 var NumberRender = (props) => {
   return (
-    <td>
-      <p>{props.value}</p>
-    </td>
+    <span>{props.value}</span>
   )
 }
 
