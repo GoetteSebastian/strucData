@@ -1,23 +1,24 @@
 import React, { useContext } from 'react'
 import Select from 'react-select'
+
 import ValueRender from "./ValueRender"
-import { ContentContext } from "./Content.js"
+import { ContentContext } from "./List.js"
 
 var LinkRender = (props) => {
   const lists = useContext(ContentContext)
   const getLink = () => {
-    if(lists[props.prototypeKey].content.length > 0 && lists[props.prototypeKey].content.filter((item) => {return item.id === props.value}).length > 0) {
-      var value = lists[props.prototypeKey].content.find((item) => {return item.id === props.value})[props.rel]
-      var prototype = lists[props.prototypeKey].prototype.find(proto => proto.key === props.rel)
+    if(lists[props.prototypeKey].content.length > 0 && lists[props.prototypeKey].content.filter((entry) => {return entry.id === props.value}).length > 0) {
+      var value = lists[props.prototypeKey].content.find((entry) => {return entry.id === props.value}).value
+      var prototype = lists[props.prototypeKey].prototype
       return <ValueRender type={prototype.type} value={value} rel={prototype.rel} prototypeKey={prototype.key}/>
     }
     else {
       return "Error: Link not found!"
     }
   }
-  return (
+  return props.prototypeKey in lists ? (
     getLink()
-  )
+  ) : null
 }
 
 export default LinkRender
@@ -25,7 +26,7 @@ export default LinkRender
 
 var LinkEdit = (props) => {
   const lists = useContext(ContentContext)
-  const options = lists[props.prototype.key].content.map((item, index) => {return {value: item.id, label: item[props.prototype.rel]}})
+  const options = lists[props.prototype.key].content.map(item => {return {value: item.id, label: item.value}})
   return (
     <div className="inputWrapper">
       <label>{lists[props.prototype.key].name}</label>

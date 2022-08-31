@@ -1,13 +1,24 @@
-import React, { useContext, useState } from 'react'
+import React, { useState, useEffect, createContext } from 'react'
+import { useParams } from "react-router-dom"
+import Header from './Header'
 import Entry from "./Entry"
 import EntryEdit from "./EntryEdit"
 import Dialog from "./Dialog"
 import ListEdit from "./ListEdit"
-import { ContentContext } from "./Content.js"
+
+export const ContentContext = createContext()
 
 var List = (props) => {
-  //TODO: Load List when loaded and get the list name from the Navigation Prop
-  const lists = useContext(ContentContext)
+  const [ list, setList ] = useState({
+    name: "",
+    sort: [],
+    content: [],
+    prototype: [],
+    linkableLists: [],
+    dataTypes: {}
+  })
+
+  const [ linkedLists, setLinkedLists] = useState({})
 
   //add entry element
   const [ addEntryDialog, setAddEntryDialog ] = useState(false)
@@ -31,6 +42,18 @@ var List = (props) => {
         break
     }
   }
+  let params = useParams()
+  useEffect(() => {
+    window.ipc.on('GET/list.res', (args) => {
+      setList(args.list)
+      setLinkedLists(args.linkedLists)
+    })
+    window.ipc.send('GET/list.req', {listName: params.listName})
+  }, [])
+
+  useEffect(() => () => {
+    window.ipc.removeAll('GET/list.res')
+  }, [])
 
   //edit list elements
   const [ editListDialog, setEditListDialog ] = useState(false)
@@ -55,9 +78,10 @@ var List = (props) => {
   }
 
   return (
-    <>
-     <div key={lists[props.list].id}>
-      <h1>{lists[props.list].name}
+    <ContentContext.Provider value={linkedLists}>
+    <Header />
+     <div id="contentCanvas">
+      <h1>{list.name}
         <button className="icon" onClick={() => {setEditListDialog(true)}}><span className="icon edit"></span></button>
         <button className="right red marginRight" onClick={() => {setAddEntryDialog(true)}}>Elemente hinzufügen</button>
       </h1>
@@ -65,7 +89,7 @@ var List = (props) => {
         <thead>
           <tr>
             {
-              lists[props.list].prototype.sort((a, b) => a.sort - b.sort).map((prototype, index) =>
+              list.prototype.sort((a, b) => a.sort - b.sort).map((prototype, index) =>
                 prototype.type !== "index"
                   ? <th key={index}>{prototype.name}</th>
                   : null
@@ -75,16 +99,16 @@ var List = (props) => {
         </thead>
         <tbody>
           {
-            lists[props.list].content.sort((a, b) => { //TODO: add sort logic for links, they have to sort depending on the displayed link value and not the link index value
+            list.content.sort((a, b) => { //TODO: add sort logic for links, they have to sort depending on the displayed link value and not the link index value
               var result = 0
-              lists[props.list].sort.forEach(sortKey => {
+              list.sort.forEach(sortKey => {
                 if(result === 0) {
                   result = a[sortKey] < b[sortKey] ? -1 : a[sortKey] > b[sortKey] ? 1 : 0
                 }
               })
               return result
             }).map((content, index) =>
-              <Entry list={props.list} content={content} prototype={lists[props.list].prototype} key={index}/>
+              <Entry list={params.listName} content={content} prototype={list.prototype} key={index}/>
             )
           }
         </tbody>
@@ -93,18 +117,18 @@ var List = (props) => {
      {
        addEntryDialog ?
          <Dialog action={addEntryDialogActions} dialogTitle="Add new Entry" isDeletable={false}>
-           <EntryEdit list={props.list} uid={-1} actions={addEntryActions} setActions={addEntryDialogActions} setIsDeletable={setIsDeletable} />
+           <EntryEdit list={params.listName} uid={-1} actions={addEntryActions} setActions={addEntryDialogActions} setIsDeletable={setIsDeletable} />
          </Dialog>
        : null
      }
      {
        editListDialog ?
-        <Dialog action={editListDialogActions} dialogTitle={"Edit List: " + lists[props.list].name} isDeletable={isDeletable}>
-          <ListEdit list={props.list} actions={editListActions} setActions={editListDialogActions} setIsDeletable={setIsDeletable} />
+        <Dialog action={editListDialogActions} dialogTitle={"Edit List: " + list.name} isDeletable={isDeletable}>
+          <ListEdit list={params.listName} actions={editListActions} setActions={editListDialogActions} setIsDeletable={setIsDeletable} />
         </Dialog>
       : null
      }
-   </>
+   </ContentContext.Provider>
  )
 }
 export default List

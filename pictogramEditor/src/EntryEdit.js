@@ -20,7 +20,6 @@ var EntryEdit = (props) => {
   }
   useEffect(() => {
     window.ipc.on('GET/entry.res', (args) => {
-      console.log(args)
       setEntry(args)
       props.setIsDeletable(args.isDeletable)
     })
@@ -89,7 +88,7 @@ var EntryEdit = (props) => {
             case "svg":
               return <SVGEdit value={entry.content[proto.key]} prototype={proto} update={updateEntry} key={index}/>
             default: 
-              return <></>
+              return null
           }
        })
      }

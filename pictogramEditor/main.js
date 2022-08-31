@@ -3,6 +3,7 @@ const path = require('path')
 const fs = require('fs')
 const isDev = require('electron-is-dev')
 const md5 = require('md5')
+const { prototype } = require('events')
 
 let mainWindow
 var fileData = { //global data object
@@ -199,7 +200,6 @@ const readFile = () => {
       fileData.data = JSON.parse(data)
       fileData.isFile = true
       mainWindow.webContents.send("PUSH/setTitle", {title: fileData.path})
-      mainWindow.webContents.send("GET/lists.res", fileData.data)
       sendListsToFrontend()
     })
   })
@@ -296,12 +296,13 @@ const closeApp = () => {
 }
 
 ipcMain.on("GET/lists.req", (event, args) => {
-  mainWindow.webContents.send("GET/lists.res", fileData.data)
   sendListsToFrontend()
 })
 
-ipcMain.on("GET/listsX.req", (event, args) => {
-  sendListsToFrontend()
+ipcMain.on("GET/list.req", (event, args) => {
+  if(args.listName in fileData.data) {
+    sendListToFrontend(args.listName)
+  }
 })
 
 ipcMain.on("GET/listEdit.req", (event, args) => {
@@ -385,7 +386,6 @@ ipcMain.on("POST/listEdit.req", (event, args) => { // Update existing List
   }
   fileData.unsavedChanges = true
   mainWindow.webContents.send("POST/listEdit.res", {status: "success"})
-  mainWindow.webContents.send("GET/lists.res", fileData.data)
   sendListsToFrontend()
 })
 
@@ -400,7 +400,6 @@ ipcMain.on("PUT/listEdit.req", (event, args) => {
     content: []
   }
   mainWindow.webContents.send("PUT/listEdit.res", {status: "success"})
-  mainWindow.webContents.send("GET/lists.res", fileData.data)
   sendListsToFrontend()
   fileData.unsavedChanges = true
 })
@@ -409,7 +408,6 @@ ipcMain.on("DELETE/listEdit.req", (event, args) => {
   if(isListDeletable({list: args.list})) {
     delete fileData.data[args.list]
     mainWindow.webContents.send("DELETE/listEdit.res", {status: "success"})
-    mainWindow.webContents.send("GET/lists.res", fileData.data)
     sendListsToFrontend()
     fileData.unsavedChanges = true
   }
@@ -418,7 +416,7 @@ ipcMain.on("DELETE/listEdit.req", (event, args) => {
 ipcMain.on("GET/entry.req", (event, args) => {
   var entry = {content: {}, prototype: fileData.data[args.list].prototype, isDeletable: false}
   if(args.id === -1) {
-    fileData.data[args.list].prototype.map((proto, index) => {
+    fileData.data[args.list].prototype.map(proto => {
       entry.content[proto.key] = dataTypes[proto.type].default
     })
   }
@@ -434,8 +432,7 @@ ipcMain.on("POST/entry.req", (event, args) => {
   if(index !== -1) {
     fileData.data[args.list].content[index] = args.entry
     mainWindow.webContents.send("PUT/entry.res", {status: "success"})
-    mainWindow.webContents.send("GET/lists.res", fileData.data)
-    sendListsToFrontend()
+    sendListToFrontend(args.list)
     fileData.unsavedChanges = true
   }
   else {
@@ -454,8 +451,7 @@ ipcMain.on("PUT/entry.req", (event, args) => {
     fileData.data[args.list].content.push(content)
   }
   mainWindow.webContents.send("POST/entry.res", {status: "success"})
-  mainWindow.webContents.send("GET/lists.res", fileData.data)
-  sendListsToFrontend()
+  sendListToFrontend(args.list)
   fileData.unsavedChanges = true
 })
 
@@ -464,8 +460,7 @@ ipcMain.on("DELETE/entry.req", (event, args) => {
   if(index !== -1 && isEntryDeletable({list: args.list, id: args.id})) {
     fileData.data[args.list].content.splice(index, 1)
     mainWindow.webContents.send("DELETE/entry.res", {status: "success"})
-    mainWindow.webContents.send("GET/lists.res", fileData.data)
-    sendListsToFrontend()
+    sendListToFrontend(args.list)
     fileData.unsavedChanges = true
   }
   else {
@@ -513,7 +508,28 @@ const isPrototypeDeletable = (args) => {
 }
 
 const sendListsToFrontend = () => {
-  mainWindow.webContents.send("GET/listsX.res", Object.keys(fileData.data))
+  mainWindow.webContents.send("GET/lists.res", Object.keys(fileData.data))
+}
+
+const sendListToFrontend = (listName) => {
+  var linkedLists = {}
+  Object.keys(fileData.data).filter(listKey => { //filter all lists which are linked with the given list
+    return fileData.data[listName].prototype.filter(prototype => {
+      return dataTypes[prototype.type].isLink && //true if prototype is link or multiLink, else false
+      prototype.name === fileData.data[listKey].name //true if prototype name equals the name of the given list (means this list is lined to the given list), else false
+    }).length > 0 ? true : false //true if amount of filtered prototypes is > 0, else false
+  })
+  .forEach(listKey => {
+    linkedLists[listKey] = {}
+    linkedLists[listKey].content = fileData.data[listKey].content.map(entry => {
+      return {
+        id: entry.id, 
+        value: entry[fileData.data[listName].prototype.find(prototype => dataTypes[prototype.type].isLink && prototype.name === fileData.data[listKey].name).rel]}
+    })
+    linkedLists[listKey].prototype = fileData.data[listKey].prototype.find(prototype => prototype.key === fileData.data[listName].prototype.find(prototype => prototype.name === fileData.data[listKey].name).rel)
+  })
+
+  mainWindow.webContents.send("GET/list.res", {list: fileData.data[listName], linkedLists: linkedLists})
 }
 
 // PUT = Insert new Entry

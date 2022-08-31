@@ -1,14 +1,10 @@
 import React, { useState } from "react"
+import { Link } from "react-router-dom"
 import logo from './sbblogo.svg'
 import Dialog from "./Dialog"
 import ListEdit from "./ListEdit"
 
 var Header = () => {
-  const buildViewPort = () => {
-    console.log("refresh")
-    window.ipc.send("GET/lists.req", "")
-  }
-
   const [ addListDialog, setAddListDialog ] = useState(false)
   const [ addListActions, setAddListActions] = useState("clear")
   const addListDialogActions = (action) => {
@@ -31,7 +27,7 @@ var Header = () => {
    <>
     <div id="header">
       <img src={logo} className="mod_header_logo_content" alt="SBB Logo" />
-      <button id="redrawCanvas" onClick={() => {buildViewPort()}}>Aktualisieren</button>
+      <Link to="/"><span className="icon home"></span></Link>
       <button id="createNewList" onClick={() => {setAddListDialog(true)}}>Neue Tabelle erstellen</button>
     </div>
     {
