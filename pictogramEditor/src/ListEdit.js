@@ -7,6 +7,7 @@ import md5 from 'md5'
 var ListEdit = (props) => {
   const [ list, setList ] = useState({
     name: "",
+    abstract: "",
     sort: [],
     prototype: [],
     linkableLists: [],
@@ -56,7 +57,7 @@ var ListEdit = (props) => {
         props.setActions("clear")
         break
       case "post":
-        window.ipc.send('POST/listEdit.req', {prototype: list.prototype, list: props.list, name: list.name, sort: list.sort})
+        window.ipc.send('POST/listEdit.req', {prototype: list.prototype, list: props.list, name: list.name, abstract: list.abstract, sort: list.sort})
         props.setActions("clear")
         break
       case "delete":
@@ -138,6 +139,9 @@ var ListEdit = (props) => {
             isClearable={true}
             onChange={(values) => {setList(prevEntry => ({ ...prevEntry, sort: values.map((value, index) => {return value.value})}))}}
           />
+        </div>
+        <div className='inputWrapper'>
+          <textarea value={list.abstract} onChange={(e) => {setList(prevEntry => ({ ...prevEntry, abstract: e.target.value}))}}></textarea>
         </div>
         <div className="inputWrapper">
           <button className="red right" onClick={(e) => {addAttribute()}}>Neues Attribut</button>

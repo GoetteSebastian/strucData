@@ -4,12 +4,13 @@ import { useNavigate } from "react-router-dom"
 const ListBox = (props) => {
     let navigate = useNavigate()
     return (
-        <div className="listBoxContainer" onClick={() => navigate(`/list/${props.list}`)}>
-            <h2>{props.list}</h2>
+        <div className="listBoxContainer" onClick={() => navigate(`/list/${props.list.name}`)}>
+            <h2>{props.list.name}</h2>
+            <p className="multiLine">
+                {props.list.abstract}
+            </p>
             <p>
-                Blabla
-                <br />
-                Blahblah
+                {props.list.length} Einträge 
             </p>
         </div>
     )

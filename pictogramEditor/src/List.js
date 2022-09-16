@@ -1,5 +1,6 @@
 import React, { useState, useEffect, createContext } from 'react'
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
+
 import Header from './Header'
 import Entry from "./Entry"
 import EntryEdit from "./EntryEdit"
@@ -9,6 +10,8 @@ import ListEdit from "./ListEdit"
 export const ContentContext = createContext()
 
 var List = (props) => {
+  let navigate = useNavigate()
+  let params = useParams()
   const [ list, setList ] = useState({
     name: "",
     sort: [],
@@ -17,7 +20,7 @@ var List = (props) => {
     linkableLists: [],
     dataTypes: {}
   })
-
+  
   const [ linkedLists, setLinkedLists] = useState({})
 
   //add entry element
@@ -42,18 +45,26 @@ var List = (props) => {
         break
     }
   }
-  let params = useParams()
-  useEffect(() => {
-    window.ipc.on('GET/list.res', (args) => {
+
+  useEffect(() => { //on load
+    window.ipc.on('GET/list.res', args => {
       setList(args.list)
       setLinkedLists(args.linkedLists)
+    })
+    window.ipc.on("PUSH/redirectTo", target => {
+      navigate(target)
     })
     window.ipc.send('GET/list.req', {listName: params.listName})
   }, [])
 
   useEffect(() => () => {
     window.ipc.removeAll('GET/list.res')
+    window.ipc.removeAll('PUSH/redirectTo')
   }, [])
+
+  useEffect(() => { //when params.listName change
+    window.ipc.send('GET/list.req', {listName: params.listName})
+  }, [params.listName])
 
   //edit list elements
   const [ editListDialog, setEditListDialog ] = useState(false)

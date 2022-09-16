@@ -28,7 +28,7 @@ var Header = () => {
     <div id="header">
       <img src={logo} className="mod_header_logo_content" alt="SBB Logo" />
       <Link to="/"><span className="icon home"></span></Link>
-      <button id="createNewList" onClick={() => {setAddListDialog(true)}}>Neue Tabelle erstellen</button>
+      <button onClick={() => {setAddListDialog(true)}}><span className="icon addDocument"></span></button>
     </div>
     {
       addListDialog ?

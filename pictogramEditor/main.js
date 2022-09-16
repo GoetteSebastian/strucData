@@ -250,10 +250,10 @@ const writeFile = async () => {
   return new Promise((resolve, reject) => {
     fs.writeFile(fileData.path, JSON.stringify(fileData.data), "utf8", function(err) {
       if(err) {
-        mainWindow.webContents.send("PUSH/notification", {type: "error", text: "Datei konnte nicht gespeichert werden: "})
+        mainWindow.webContents.send("PUSH/notification", {type: "error", message: "Datei konnte nicht gespeichert werden: "})
         reject()
       }
-      mainWindow.webContents.send("PUSH/notification", {type: "success", text: "Datei wurde erfolgreich gespeichert. "})
+      mainWindow.webContents.send("PUSH/notification", {type: "success", message: "Datei wurde erfolgreich gespeichert. "})
       fileData.unsavedChanges = false
       fileData.isFile = true
       resolve()
@@ -320,6 +320,7 @@ ipcMain.on("GET/listEdit.req", (event, args) => {
   if(args.list === -1) {
     var response = {
       name: "",
+      abstract: "",
       sort: ["id"],
       prototype: [{name: "Id", key: "id", type: "index", rel: "", sort: 0, isDeletable: false, uid: md5("id")}],
       linkableLists: linkableLists,
@@ -336,6 +337,7 @@ ipcMain.on("GET/listEdit.req", (event, args) => {
         return proto
       }),
       name: fileData.data[args.list].name,
+      abstract: fileData.data[args.list].abstract,
       sort: fileData.data[args.list].sort,
       linkableLists: linkableLists,
       dataTypes: dataTypes,
@@ -351,6 +353,7 @@ ipcMain.on("POST/listEdit.req", (event, args) => { // Update existing List
   })
   var deletedPrototypes = args.prototype.filter(proto => isPrototypeDeletable({prototype: proto, list: args.list}) && proto.action == "delete")
   fileData.data[args.list].prototype = newPrototype
+  fileData.data[args.list].abstract = args.abstract
   deletedPrototypes.forEach((proto) => {
     fileData.data[args.list].content.forEach((item, index) => {
       delete fileData.data[args.list].content[index][proto.key]
@@ -386,21 +389,22 @@ ipcMain.on("POST/listEdit.req", (event, args) => { // Update existing List
   }
   fileData.unsavedChanges = true
   mainWindow.webContents.send("POST/listEdit.res", {status: "success"})
-  sendListsToFrontend()
+  sendListToFrontend(args.list)
 })
 
-ipcMain.on("PUT/listEdit.req", (event, args) => {
+ipcMain.on("PUT/listEdit.req", (event, args) => { //insert new list
   var newPrototype = args.list.prototype.map(proto => {
     return {name: proto.name, key: proto.key, type: proto.type, rel: proto.rel, sort: proto.sort}
   })
   fileData.data[args.list.name] = {
     name: args.list.name,
+    abstract: args.list.abstract,
     sort: args.list.sort,
     prototype: newPrototype,
     content: []
   }
   mainWindow.webContents.send("PUT/listEdit.res", {status: "success"})
-  sendListsToFrontend()
+  redirectTo(`/list/${args.list.name}`)
   fileData.unsavedChanges = true
 })
 
@@ -408,7 +412,7 @@ ipcMain.on("DELETE/listEdit.req", (event, args) => {
   if(isListDeletable({list: args.list})) {
     delete fileData.data[args.list]
     mainWindow.webContents.send("DELETE/listEdit.res", {status: "success"})
-    sendListsToFrontend()
+    redirectTo('/')
     fileData.unsavedChanges = true
   }
 })
@@ -508,13 +512,20 @@ const isPrototypeDeletable = (args) => {
 }
 
 const sendListsToFrontend = () => {
-  mainWindow.webContents.send("GET/lists.res", Object.keys(fileData.data))
+  var lists = Object.keys(fileData.data).map(listName => {
+    return {
+      name: fileData.data[listName].name,
+      length: fileData.data[listName].content.length,
+      abstract: fileData.data[listName].abstract
+    }
+  })
+  mainWindow.webContents.send("GET/lists.res", lists)
 }
 
 const sendListToFrontend = (listName) => {
   var linkedLists = {}
   Object.keys(fileData.data).filter(listKey => { //filter all lists which are linked with the given list
-    return fileData.data[listName].prototype.filter(prototype => {
+    return fileData.data[listName].prototype.filter(prototype => { //FIXME Cannot read properties of undefined (reading 'prototype') when renaming a list. 
       return dataTypes[prototype.type].isLink && //true if prototype is link or multiLink, else false
       prototype.name === fileData.data[listKey].name //true if prototype name equals the name of the given list (means this list is lined to the given list), else false
     }).length > 0 ? true : false //true if amount of filtered prototypes is > 0, else false
@@ -530,6 +541,10 @@ const sendListToFrontend = (listName) => {
   })
 
   mainWindow.webContents.send("GET/list.res", {list: fileData.data[listName], linkedLists: linkedLists})
+}
+
+const redirectTo = (target) => {
+  mainWindow.webContents.send("PUSH/redirectTo", target)
 }
 
 // PUT = Insert new Entry

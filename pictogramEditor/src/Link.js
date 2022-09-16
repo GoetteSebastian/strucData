@@ -26,10 +26,11 @@ export default LinkRender
 
 var LinkEdit = (props) => {
   const lists = useContext(ContentContext)
+  console.log(lists)
   const options = lists[props.prototype.key].content.map(item => {return {value: item.id, label: item.value}})
   return (
     <div className="inputWrapper">
-      <label>{lists[props.prototype.key].name}</label>
+      <label>{props.prototype.key}</label>
       <Select
         value={options.filter(option => props.value === option.value)}
         options={options}

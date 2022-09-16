@@ -49,7 +49,6 @@ td, th {
   overflow: hidden;
   font-size: 1rem;
   font-family: "SBBWeb Roman";
-  line-height: 34px;
   height: 37px;
 }
 td:hover, th:hover {
@@ -173,7 +172,7 @@ div.editCanvas {
   font-family: "SBBWeb Roman";
   text-align: left;
 }
-input, select {
+input, select, textarea {
   display: block;
   width: 100%;
   font-size: 1rem;
@@ -248,8 +247,6 @@ button.red:hover{
   background-color: #C60018;
   color: #ffffff;
 }
-
-
 button.icon {
   width: 36px;
   height: 36px;
@@ -266,6 +263,7 @@ button.icon {
   line-height: 48px;
   text-decoration: none;
   display: inline-block;
+  min-width: 0;
 }
 #header button:hover {
   color: #C60018;
@@ -339,14 +337,75 @@ h2 {
   border: 1px solid #eb0000;
   border-radius: 2px;
 }
-#notificationCanvas {
+#notificationContainer {
   position: fixed;
-  top: 50px;
-  right: 50px;
-  width: auto;
-  overflow: hidden;
-  height: auto;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  flex-direction: column;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  height: 0px;
+  overflow: visible;
   z-index: 1000;
+}
+
+#notificationCanvas.success {
+  border: 1px solid rgb(0, 151, 59);
+  background-color: #FFFFFF;
+  color: #00973b;
+}
+#notificationCanvas span.icon.success {
+  background-image: url("assets/tick-small-green.svg");
+}
+#notificationCanvas button.icon.success {
+  background-image: url("assets/cross-small-green.svg");
+}
+
+
+#notificationCanvas.error {
+  border: 1px solid rgb(235, 0, 0);
+  background-color: rgb(235, 0, 0);
+  color: #FFFFFF;
+}
+#notificationCanvas span.icon.error {
+  background-image: url("assets/sign-exclamation-point-small-white.svg");
+}
+#notificationCanvas button.icon.error {
+  background-image: url("assets/cross-small-white.svg");
+}
+
+#notificationCanvas {
+  margin: 20px;
+  padding: 11px 0px 9px 0px;
+  overflow: hidden;
+  border-radius: 2px;
+  display: flex;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+#notificationCanvas span.icon {
+  display: inline-block;
+  height: 24px;
+  width: 24px;
+  margin-left: 16px;
+}
+#notificationCanvas span.message {
+  display: inline-block;
+  line-height: 26px;
+  font-size: 15px;
+  font-family: "SBBWeb Roman";
+  margin: 0px 24px 0px 8px;
+}
+#notificationCanvas button {
+  width: 24px;
+  height: 24px;
+  margin-right: 22px;
+  background-color: inherit;
+}
+p {
+  margin-bottom: 1em;
 }
 p.notifier {
   width: 200px;
@@ -362,9 +421,12 @@ p.success {
   background-color: #ffffff;
   color: #00973B;
 }
-p.error{
+p.error {
   background-color: #EB0000;
   color: #FFFFFF;
+}
+p.multiLine {
+  white-space: pre-line;
 }
 .hidden {
   display: none;
@@ -396,7 +458,7 @@ span.icon {
 span.icon.true {
   background-image: url("assets/tick-small.svg");
 }
-span.icon.false {
+.icon.false {
   background-image: url("assets/cross-small.svg");
 }
 span.icon.delete {
@@ -404,6 +466,11 @@ span.icon.delete {
 }
 span.icon.edit {
   background-image: url("assets/pen-small.svg");
+}
+span.icon.addDocument {
+  background-image: url("assets/document-plus-small.svg");
+  display: inline-block;
+  vertical-align: middle;
 }
 button.icon.up {
   background-image: url("assets/chevron-small-up-small.svg");
@@ -443,4 +510,10 @@ div.listBoxContainer {
 div.listBoxContainer:hover {
   background-color: #e5e5e5;
   transition: background 225ms ease-in-out;
+}
+div.linkContainer span {
+  margin: 4px;
+  padding: 4px 13.5px 4px 13.5px;
+  border: solid 1px #000000;
+  border-radius: 13.5px;
 }
