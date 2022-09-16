@@ -8,7 +8,7 @@ var SVGRender = (props) => {
 
 export default SVGRender
 
-var SVGEdit = (props) => {
+var SVGEdit = (props) => { //TODO: If SVG is used as a link rel, the svg code will be shown in the react select dropdown, fix that. 
   var inputElement
   const loadSVG = (event) => {
     if(event.target.files.length > 0) {
